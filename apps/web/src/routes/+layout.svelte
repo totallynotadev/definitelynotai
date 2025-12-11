@@ -1,11 +1,13 @@
 <script lang="ts">
   import '../app.css';
 
+  import type { Snippet } from 'svelte';
+
   interface Props {
-    children: import('svelte').Snippet;
+    children: Snippet;
   }
 
-  let { children }: Props = $props();
+  const { children }: Props = $props();
 </script>
 
 <div class="min-h-screen bg-gray-50">

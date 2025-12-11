@@ -5,12 +5,13 @@ import { prettyJSON } from 'hono/pretty-json';
 import { requestId } from 'hono/request-id';
 import { secureHeaders } from 'hono/secure-headers';
 
-import type { CloudflareBindings } from './lib/env';
 import { errorHandler } from './middleware/error-handler';
 import { agents } from './routes/agents';
 import { deployments } from './routes/deployments';
 import { health } from './routes/health';
 import { projects } from './routes/projects';
+
+import type { CloudflareBindings } from './lib/env';
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 

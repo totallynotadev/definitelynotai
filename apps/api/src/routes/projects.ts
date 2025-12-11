@@ -1,5 +1,3 @@
-import { Hono } from 'hono';
-
 import {
   createProjectInputSchema,
   formatDate,
@@ -10,6 +8,8 @@ import {
   ProjectStatus,
   updateProjectInputSchema,
 } from '@definitelynotai/shared';
+import { Hono } from 'hono';
+
 
 import type { CloudflareBindings } from '../lib/env';
 
@@ -114,11 +114,17 @@ projects.patch('/:id', async (c) => {
   const validated = updateProjectInputSchema.parse(body);
 
   // TODO: Implement database update
-  const updatedProject: Partial<ProjectDTO> & { id: string } = {
+  // Build update object explicitly to satisfy exactOptionalPropertyTypes
+  const updatedProject: Record<string, unknown> = {
     id,
-    ...validated,
     updatedAt: formatDate(new Date()),
   };
+
+  if (validated.name !== undefined) {updatedProject.name = validated.name;}
+  if (validated.description !== undefined) {updatedProject.description = validated.description;}
+  if (validated.prompt !== undefined) {updatedProject.prompt = validated.prompt;}
+  if (validated.status !== undefined) {updatedProject.status = validated.status;}
+  if (validated.platforms !== undefined) {updatedProject.platforms = validated.platforms;}
 
   return c.json({ data: updatedProject });
 });

@@ -1,8 +1,8 @@
-import { type Context, type Next } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { ZodError } from 'zod';
 
 import type { CloudflareBindings } from '../lib/env';
+import type { Context, Next } from 'hono';
 
 export interface ApiError {
   error: string;
@@ -17,7 +17,7 @@ export interface ApiError {
 export async function errorHandler(
   c: Context<{ Bindings: CloudflareBindings }>,
   next: Next
-): Promise<Response> {
+): Promise<Response | void> {
   try {
     await next();
   } catch (err) {

@@ -5,9 +5,9 @@
     data: PageData;
   }
 
-  let { data }: Props = $props();
+  const { data }: Props = $props();
 
-  const project = {
+  const project = $derived({
     id: data.id,
     name: 'E-commerce App',
     description: 'Full-featured online store with shopping cart, checkout flow, and payment integration.',
@@ -15,7 +15,7 @@
     createdAt: 'December 1, 2024',
     lastUpdated: '2 hours ago',
     deploymentUrl: 'https://ecommerce-app.pages.dev',
-  };
+  });
 
   const buildHistory = [
     { id: '1', status: 'success', duration: '2m 34s', timestamp: '2 hours ago' },

@@ -1,4 +1,5 @@
 /// <reference types="@sveltejs/kit" />
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 
 declare global {
   namespace App {
@@ -10,9 +11,7 @@ declare global {
     interface PageData {}
     interface PageState {}
     interface Platform {
-      env?: {
-        // Cloudflare bindings
-      };
+      env?: object;
       context?: {
         waitUntil(promise: Promise<unknown>): void;
       };

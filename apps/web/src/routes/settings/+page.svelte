@@ -81,6 +81,7 @@
             class="relative inline-flex h-6 w-11 items-center rounded-full bg-primary-600"
             role="switch"
             aria-checked="true"
+            aria-label="Toggle email notifications"
           >
             <span class="inline-block h-4 w-4 translate-x-6 transform rounded-full bg-white transition"></span>
           </button>
@@ -94,6 +95,7 @@
             class="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200"
             role="switch"
             aria-checked="false"
+            aria-label="Toggle dark mode"
           >
             <span class="inline-block h-4 w-4 translate-x-1 transform rounded-full bg-white transition"></span>
           </button>
