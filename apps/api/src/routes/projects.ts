@@ -1,143 +1,290 @@
+import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
+import { createClient, users, projects, eq, and, desc } from '@definitelynotai/db';
 import {
-  createProjectInputSchema,
-  formatDate,
   generatePrefixedId,
   ID_PREFIXES,
   Platform,
-  type ProjectDTO,
-  ProjectStatus,
-  updateProjectInputSchema,
+  platformSchema,
+  projectStatusSchema,
 } from '@definitelynotai/shared';
-import { Hono } from 'hono';
-
 
 import type { CloudflareBindings } from '../lib/env';
-
-const projects = new Hono<{ Bindings: CloudflareBindings }>();
+import type { AuthVariables } from '../middleware/auth';
 
 /**
- * List all projects
+ * Input schemas for project operations
+ */
+const createProjectSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  prompt: z.string().min(10).max(10000),
+  platforms: z.array(platformSchema).min(1).default([Platform.CLOUDFLARE_PAGES]),
+});
+
+const updateProjectSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).nullable().optional(),
+  prompt: z.string().min(10).max(10000).optional(),
+  status: projectStatusSchema.optional(),
+  platforms: z.array(platformSchema).min(1).optional(),
+});
+
+/**
+ * Helper to get or create user from Clerk auth
+ * This handles the case where the webhook hasn't synced the user yet
+ */
+async function getOrCreateUser(
+  db: ReturnType<typeof createClient>,
+  clerkId: string
+): Promise<{ id: string; clerkId: string; email: string; name: string | null } | null> {
+  // Try to find existing user
+  const existingUser = await db
+    .select()
+    .from(users)
+    .where(eq(users.clerkId, clerkId))
+    .limit(1);
+
+  if (existingUser.length > 0) {
+    return existingUser[0];
+  }
+
+  // User doesn't exist - create a placeholder
+  // This handles development scenarios where webhook hasn't synced yet
+  // The webhook will update the email/name when it fires
+  const newUser = await db
+    .insert(users)
+    .values({
+      id: generatePrefixedId(ID_PREFIXES.USER),
+      clerkId,
+      email: `${clerkId}@placeholder.local`, // Placeholder email
+      name: null,
+    })
+    .returning();
+
+  console.log('Created placeholder user for clerkId:', clerkId);
+  return newUser[0] ?? null;
+}
+
+const projectRoutes = new Hono<{
+  Bindings: CloudflareBindings;
+  Variables: AuthVariables;
+}>();
+
+/**
+ * List all projects for the authenticated user
  * GET /projects
  */
-projects.get('/', (c) => {
-  // TODO: Implement database query
-  const mockProjects: ProjectDTO[] = [
-    {
-      id: generatePrefixedId(ID_PREFIXES.PROJECT),
-      userId: 'usr_demo123',
-      name: 'E-commerce App',
-      description: 'Full-featured online store',
-      prompt: 'Create an e-commerce application with product listings and shopping cart.',
-      status: ProjectStatus.DEPLOYED,
-      platforms: [Platform.CLOUDFLARE_PAGES],
-      createdAt: '2024-12-01T00:00:00Z',
-      updatedAt: '2024-12-10T00:00:00Z',
-    },
-    {
-      id: generatePrefixedId(ID_PREFIXES.PROJECT),
-      userId: 'usr_demo123',
-      name: 'Dashboard Template',
-      description: 'Analytics dashboard',
-      prompt: 'Create an analytics dashboard with charts and data visualization.',
-      status: ProjectStatus.BUILDING,
-      platforms: [Platform.CLOUDFLARE_PAGES],
-      createdAt: '2024-12-05T00:00:00Z',
-      updatedAt: '2024-12-11T00:00:00Z',
-    },
-  ];
+projectRoutes.get('/', async (c) => {
+  const { userId: clerkId } = c.get('auth');
+
+  if (!clerkId) {
+    return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401);
+  }
+
+  if (!c.env.DATABASE_URL) {
+    return c.json({ error: 'Database not configured', code: 'DB_NOT_CONFIGURED' }, 500);
+  }
+
+  const db = createClient(c.env.DATABASE_URL);
+
+  // Get or create user
+  const user = await getOrCreateUser(db, clerkId);
+  if (!user) {
+    return c.json({ error: 'Failed to get user', code: 'USER_ERROR' }, 500);
+  }
+
+  // Get user's projects
+  const userProjects = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.userId, user.id))
+    .orderBy(desc(projects.createdAt));
 
   return c.json({
-    data: mockProjects,
+    data: userProjects,
     meta: {
-      total: mockProjects.length,
-      page: 1,
-      pageSize: 20,
+      total: userProjects.length,
     },
   });
 });
 
 /**
- * Get a single project
+ * Get a single project by ID
  * GET /projects/:id
  */
-projects.get('/:id', (c) => {
-  const id = c.req.param('id');
+projectRoutes.get('/:id', async (c) => {
+  const { userId: clerkId } = c.get('auth');
+  const projectId = c.req.param('id');
 
-  // TODO: Implement database query
-  const mockProject: ProjectDTO = {
-    id,
-    userId: 'usr_demo123',
-    name: 'E-commerce App',
-    description: 'Full-featured online store with shopping cart, checkout flow, and payment integration.',
-    prompt: 'Create an e-commerce application with product listings, shopping cart, and checkout.',
-    status: ProjectStatus.DEPLOYED,
-    platforms: [Platform.CLOUDFLARE_PAGES, Platform.CLOUDFLARE_WORKERS],
-    createdAt: '2024-12-01T00:00:00Z',
-    updatedAt: '2024-12-10T00:00:00Z',
-  };
+  if (!clerkId) {
+    return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401);
+  }
 
-  return c.json({ data: mockProject });
+  if (!c.env.DATABASE_URL) {
+    return c.json({ error: 'Database not configured', code: 'DB_NOT_CONFIGURED' }, 500);
+  }
+
+  const db = createClient(c.env.DATABASE_URL);
+
+  // Get or create user
+  const user = await getOrCreateUser(db, clerkId);
+  if (!user) {
+    return c.json({ error: 'Failed to get user', code: 'USER_ERROR' }, 500);
+  }
+
+  // Get project (verify ownership)
+  const project = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.id, projectId), eq(projects.userId, user.id)))
+    .limit(1);
+
+  if (project.length === 0) {
+    return c.json({ error: 'Project not found', code: 'NOT_FOUND' }, 404);
+  }
+
+  return c.json({ data: project[0] });
 });
 
 /**
  * Create a new project
  * POST /projects
  */
-projects.post('/', async (c) => {
-  const body = await c.req.json();
-  const validated = createProjectInputSchema.parse(body);
+projectRoutes.post('/', zValidator('json', createProjectSchema), async (c) => {
+  const { userId: clerkId } = c.get('auth');
+  const data = c.req.valid('json');
 
-  // TODO: Implement database insert and AI generation
-  const now = formatDate(new Date());
-  const newProject: ProjectDTO = {
-    id: generatePrefixedId(ID_PREFIXES.PROJECT),
-    userId: validated.userId,
-    name: validated.name,
-    description: validated.description ?? null,
-    prompt: validated.prompt,
-    status: ProjectStatus.DRAFT,
-    platforms: validated.platforms,
-    createdAt: now,
-    updatedAt: now,
-  };
+  if (!clerkId) {
+    return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401);
+  }
 
-  return c.json({ data: newProject }, 201);
+  if (!c.env.DATABASE_URL) {
+    return c.json({ error: 'Database not configured', code: 'DB_NOT_CONFIGURED' }, 500);
+  }
+
+  const db = createClient(c.env.DATABASE_URL);
+
+  // Get or create user
+  const user = await getOrCreateUser(db, clerkId);
+  if (!user) {
+    return c.json({ error: 'Failed to get user', code: 'USER_ERROR' }, 500);
+  }
+
+  // Create project
+  const newProject = await db
+    .insert(projects)
+    .values({
+      id: generatePrefixedId(ID_PREFIXES.PROJECT),
+      userId: user.id,
+      name: data.name,
+      description: data.description ?? null,
+      prompt: data.prompt,
+      platforms: data.platforms,
+      status: 'draft',
+    })
+    .returning();
+
+  return c.json({ data: newProject[0] }, 201);
 });
 
 /**
  * Update a project
  * PATCH /projects/:id
  */
-projects.patch('/:id', async (c) => {
-  const id = c.req.param('id');
-  const body = await c.req.json();
-  const validated = updateProjectInputSchema.parse(body);
+projectRoutes.patch('/:id', zValidator('json', updateProjectSchema), async (c) => {
+  const { userId: clerkId } = c.get('auth');
+  const projectId = c.req.param('id');
+  const data = c.req.valid('json');
 
-  // TODO: Implement database update
-  // Build update object explicitly to satisfy exactOptionalPropertyTypes
-  const updatedProject: Record<string, unknown> = {
-    id,
-    updatedAt: formatDate(new Date()),
+  if (!clerkId) {
+    return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401);
+  }
+
+  if (!c.env.DATABASE_URL) {
+    return c.json({ error: 'Database not configured', code: 'DB_NOT_CONFIGURED' }, 500);
+  }
+
+  const db = createClient(c.env.DATABASE_URL);
+
+  // Get or create user
+  const user = await getOrCreateUser(db, clerkId);
+  if (!user) {
+    return c.json({ error: 'Failed to get user', code: 'USER_ERROR' }, 500);
+  }
+
+  // Verify ownership
+  const existing = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.id, projectId), eq(projects.userId, user.id)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    return c.json({ error: 'Project not found', code: 'NOT_FOUND' }, 404);
+  }
+
+  // Build update object
+  const updateData: Record<string, unknown> = {
+    updatedAt: new Date(),
   };
 
-  if (validated.name !== undefined) {updatedProject.name = validated.name;}
-  if (validated.description !== undefined) {updatedProject.description = validated.description;}
-  if (validated.prompt !== undefined) {updatedProject.prompt = validated.prompt;}
-  if (validated.status !== undefined) {updatedProject.status = validated.status;}
-  if (validated.platforms !== undefined) {updatedProject.platforms = validated.platforms;}
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.prompt !== undefined) updateData.prompt = data.prompt;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.platforms !== undefined) updateData.platforms = data.platforms;
 
-  return c.json({ data: updatedProject });
+  // Update project
+  const updated = await db
+    .update(projects)
+    .set(updateData)
+    .where(eq(projects.id, projectId))
+    .returning();
+
+  return c.json({ data: updated[0] });
 });
 
 /**
  * Delete a project
  * DELETE /projects/:id
  */
-projects.delete('/:id', (c) => {
-  const id = c.req.param('id');
+projectRoutes.delete('/:id', async (c) => {
+  const { userId: clerkId } = c.get('auth');
+  const projectId = c.req.param('id');
 
-  // TODO: Implement database delete
-  return c.json({ message: `Project ${id} deleted successfully` });
+  if (!clerkId) {
+    return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401);
+  }
+
+  if (!c.env.DATABASE_URL) {
+    return c.json({ error: 'Database not configured', code: 'DB_NOT_CONFIGURED' }, 500);
+  }
+
+  const db = createClient(c.env.DATABASE_URL);
+
+  // Get or create user
+  const user = await getOrCreateUser(db, clerkId);
+  if (!user) {
+    return c.json({ error: 'Failed to get user', code: 'USER_ERROR' }, 500);
+  }
+
+  // Verify ownership
+  const existing = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.id, projectId), eq(projects.userId, user.id)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    return c.json({ error: 'Project not found', code: 'NOT_FOUND' }, 404);
+  }
+
+  // Delete project (cascades to deployments and agent_logs)
+  await db.delete(projects).where(eq(projects.id, projectId));
+
+  return c.json({ deleted: true, id: projectId });
 });
 
-export { projects };
+export { projectRoutes as projects };
