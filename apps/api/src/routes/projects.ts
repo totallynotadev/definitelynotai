@@ -1,20 +1,19 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
+
+import {
+  createProjectInputSchema,
+  formatDate,
+  generatePrefixedId,
+  ID_PREFIXES,
+  Platform,
+  type ProjectDTO,
+  ProjectStatus,
+  updateProjectInputSchema,
+} from '@definitelynotai/shared';
 
 import type { CloudflareBindings } from '../lib/env';
 
 const projects = new Hono<{ Bindings: CloudflareBindings }>();
-
-/**
- * Project schemas
- */
-const createProjectSchema = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-  prompt: z.string().min(10).max(10000),
-});
-
-const updateProjectSchema = createProjectSchema.partial();
 
 /**
  * List all projects
@@ -22,20 +21,26 @@ const updateProjectSchema = createProjectSchema.partial();
  */
 projects.get('/', (c) => {
   // TODO: Implement database query
-  const mockProjects = [
+  const mockProjects: ProjectDTO[] = [
     {
-      id: '1',
+      id: generatePrefixedId(ID_PREFIXES.PROJECT),
+      userId: 'usr_demo123',
       name: 'E-commerce App',
       description: 'Full-featured online store',
-      status: 'deployed',
+      prompt: 'Create an e-commerce application with product listings and shopping cart.',
+      status: ProjectStatus.DEPLOYED,
+      platforms: [Platform.CLOUDFLARE_PAGES],
       createdAt: '2024-12-01T00:00:00Z',
       updatedAt: '2024-12-10T00:00:00Z',
     },
     {
-      id: '2',
+      id: generatePrefixedId(ID_PREFIXES.PROJECT),
+      userId: 'usr_demo123',
       name: 'Dashboard Template',
       description: 'Analytics dashboard',
-      status: 'building',
+      prompt: 'Create an analytics dashboard with charts and data visualization.',
+      status: ProjectStatus.BUILDING,
+      platforms: [Platform.CLOUDFLARE_PAGES],
       createdAt: '2024-12-05T00:00:00Z',
       updatedAt: '2024-12-11T00:00:00Z',
     },
@@ -59,13 +64,14 @@ projects.get('/:id', (c) => {
   const id = c.req.param('id');
 
   // TODO: Implement database query
-  const mockProject = {
+  const mockProject: ProjectDTO = {
     id,
+    userId: 'usr_demo123',
     name: 'E-commerce App',
     description: 'Full-featured online store with shopping cart, checkout flow, and payment integration.',
     prompt: 'Create an e-commerce application with product listings, shopping cart, and checkout.',
-    status: 'deployed',
-    deploymentUrl: 'https://ecommerce-app.pages.dev',
+    status: ProjectStatus.DEPLOYED,
+    platforms: [Platform.CLOUDFLARE_PAGES, Platform.CLOUDFLARE_WORKERS],
     createdAt: '2024-12-01T00:00:00Z',
     updatedAt: '2024-12-10T00:00:00Z',
   };
@@ -79,15 +85,20 @@ projects.get('/:id', (c) => {
  */
 projects.post('/', async (c) => {
   const body = await c.req.json();
-  const validated = createProjectSchema.parse(body);
+  const validated = createProjectInputSchema.parse(body);
 
   // TODO: Implement database insert and AI generation
-  const newProject = {
-    id: crypto.randomUUID(),
-    ...validated,
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+  const now = formatDate(new Date());
+  const newProject: ProjectDTO = {
+    id: generatePrefixedId(ID_PREFIXES.PROJECT),
+    userId: validated.userId,
+    name: validated.name,
+    description: validated.description ?? null,
+    prompt: validated.prompt,
+    status: ProjectStatus.DRAFT,
+    platforms: validated.platforms,
+    createdAt: now,
+    updatedAt: now,
   };
 
   return c.json({ data: newProject }, 201);
@@ -100,15 +111,13 @@ projects.post('/', async (c) => {
 projects.patch('/:id', async (c) => {
   const id = c.req.param('id');
   const body = await c.req.json();
-  const validated = updateProjectSchema.parse(body);
+  const validated = updateProjectInputSchema.parse(body);
 
   // TODO: Implement database update
-  const updatedProject = {
+  const updatedProject: Partial<ProjectDTO> & { id: string } = {
     id,
-    name: validated.name ?? 'E-commerce App',
-    description: validated.description ?? 'Full-featured online store',
-    status: 'deployed',
-    updatedAt: new Date().toISOString(),
+    ...validated,
+    updatedAt: formatDate(new Date()),
   };
 
   return c.json({ data: updatedProject });
