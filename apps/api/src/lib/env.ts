@@ -13,6 +13,8 @@ export const envSchema = z.object({
   // Auth (optional for now)
   JWT_SECRET: z.string().min(32).optional(),
   AUTH_PROVIDER_URL: z.string().url().optional(),
+  CLERK_SECRET_KEY: z.string().optional(),
+  CLERK_WEBHOOK_SECRET: z.string().optional(),
 
   // External services (optional for now)
   OPENAI_API_KEY: z.string().startsWith('sk-').optional(),
@@ -31,6 +33,8 @@ export interface CloudflareBindings {
   DATABASE_URL?: string;
   JWT_SECRET?: string;
   AUTH_PROVIDER_URL?: string;
+  CLERK_SECRET_KEY?: string;
+  CLERK_WEBHOOK_SECRET?: string;
   OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
 

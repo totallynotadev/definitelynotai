@@ -5,15 +5,17 @@ import { prettyJSON } from 'hono/pretty-json';
 import { requestId } from 'hono/request-id';
 import { secureHeaders } from 'hono/secure-headers';
 
+import { clerkAuth, requireAuth, type AuthVariables } from './middleware/auth';
 import { errorHandler } from './middleware/error-handler';
 import { agents } from './routes/agents';
 import { deployments } from './routes/deployments';
 import { health } from './routes/health';
 import { projects } from './routes/projects';
+import { clerk } from './routes/webhooks/clerk';
 
 import type { CloudflareBindings } from './lib/env';
 
-const app = new Hono<{ Bindings: CloudflareBindings }>();
+const app = new Hono<{ Bindings: CloudflareBindings; Variables: AuthVariables }>();
 
 /**
  * Global middleware
@@ -44,6 +46,9 @@ app.use(
   })
 );
 
+// Clerk authentication (parses JWT, does not require auth)
+app.use('*', clerkAuth);
+
 // Error handling middleware
 app.use('*', errorHandler);
 
@@ -54,8 +59,12 @@ app.use('*', errorHandler);
 // Health check
 app.route('/health', health);
 
-// API v1 routes
-const v1 = new Hono<{ Bindings: CloudflareBindings }>();
+// Webhooks (outside of API versioning)
+app.route('/webhooks/clerk', clerk);
+
+// API v1 routes (protected - require authentication)
+const v1 = new Hono<{ Bindings: CloudflareBindings; Variables: AuthVariables }>();
+v1.use('*', requireAuth);
 v1.route('/projects', projects);
 v1.route('/agents', agents);
 v1.route('/deployments', deployments);
