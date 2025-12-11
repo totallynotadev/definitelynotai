@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { Webhook } from 'svix';
-import { getDb, users, eq } from '@definitelynotai/db';
+import { createClient, users, eq } from '@definitelynotai/db';
 import { generatePrefixedId, ID_PREFIXES } from '@definitelynotai/shared';
 
 import type { CloudflareBindings } from '../../lib/env';
@@ -73,11 +73,11 @@ clerk.post('/', async (c) => {
   }
 
   // Get database client
-  const db = getDb(c.env.DATABASE_URL);
-  if (!db) {
+  if (!c.env.DATABASE_URL) {
     console.error('DATABASE_URL is not configured');
     return c.json({ error: 'Database not configured', code: 'DB_NOT_CONFIGURED' }, 500);
   }
+  const db = createClient(c.env.DATABASE_URL);
 
   // Handle webhook events
   try {
