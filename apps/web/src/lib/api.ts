@@ -1,5 +1,3 @@
-import { browser } from '$app/environment';
-
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787/api/v1';
 
 type FetchOptions = {
@@ -22,7 +20,7 @@ async function api<T>(endpoint: string, options: FetchOptions = {}): Promise<T> 
   const response = await fetch(`${API_URL}${endpoint}`, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? JSON.stringify(body) : null,
   });
 
   if (!response.ok) {

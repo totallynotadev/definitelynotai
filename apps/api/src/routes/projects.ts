@@ -47,7 +47,7 @@ async function getOrCreateUser(
     .limit(1);
 
   if (existingUser.length > 0) {
-    return existingUser[0];
+    return existingUser[0] ?? null;
   }
 
   // User doesn't exist - create a placeholder

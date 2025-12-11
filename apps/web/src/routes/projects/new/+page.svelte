@@ -63,9 +63,10 @@
     loading = true;
 
     try {
+      const trimmedDescription = description.trim();
       const result = await projectsApi.create({
         name: name.trim(),
-        description: description.trim() || undefined,
+        ...(trimmedDescription ? { description: trimmedDescription } : {}),
         prompt: prompt.trim(),
         platforms: selectedPlatforms,
       }, data.token);

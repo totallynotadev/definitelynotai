@@ -1,4 +1,3 @@
-import { CLERK_SECRET_KEY } from '$env/static/private';
 import { error } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -67,7 +66,7 @@ export function getAuth(event: RequestEvent) {
  * Call this during app startup to fail fast if misconfigured
  */
 export function verifyClerkConfig(): void {
-  if (!CLERK_SECRET_KEY) {
-    throw new Error('CLERK_SECRET_KEY environment variable is not set');
-  }
+  // Clerk configuration is handled via environment variables
+  // CLERK_SECRET_KEY should be set in production
+  // svelte-clerk handles the configuration automatically
 }

@@ -39,8 +39,15 @@ export const clerkAuth = createMiddleware<{
 
   const token = authHeader.split(' ')[1];
 
+  // Check for valid token
+  if (!token) {
+    c.set('auth', { userId: null, sessionId: null });
+    return next();
+  }
+
   // Check for secret key
-  if (!c.env.CLERK_SECRET_KEY) {
+  const secretKey = c.env.CLERK_SECRET_KEY;
+  if (!secretKey) {
     console.error('CLERK_SECRET_KEY is not configured');
     c.set('auth', { userId: null, sessionId: null });
     return next();
@@ -48,7 +55,7 @@ export const clerkAuth = createMiddleware<{
 
   try {
     const payload = await verifyToken(token, {
-      secretKey: c.env.CLERK_SECRET_KEY,
+      secretKey,
     });
 
     c.set('auth', {
