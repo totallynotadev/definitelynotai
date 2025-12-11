@@ -10,6 +10,7 @@ import { agents } from './routes/agents';
 import { deployments } from './routes/deployments';
 import { health } from './routes/health';
 import { projects } from './routes/projects';
+import { clerk } from './routes/webhooks/clerk';
 
 import type { CloudflareBindings } from './lib/env';
 
@@ -53,6 +54,9 @@ app.use('*', errorHandler);
 
 // Health check
 app.route('/health', health);
+
+// Webhooks (outside of API versioning)
+app.route('/webhooks/clerk', clerk);
 
 // API v1 routes
 const v1 = new Hono<{ Bindings: CloudflareBindings }>();
