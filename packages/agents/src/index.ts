@@ -10,3 +10,4 @@ export * from './clients';
 export * from './router';
 export * from './agents';
 export * from './workflows';
+export * from './council';
