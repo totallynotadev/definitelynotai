@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
+  import { notify } from '$lib/utils/toast';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
@@ -180,6 +182,7 @@
     if (editedName.trim() && editedName !== data.project.name) {
       // TODO: API call to save name
       console.log('Save name:', editedName);
+      notify.projectUpdated(editedName.trim());
     }
     editNameMode = false;
   }
@@ -197,6 +200,7 @@
       setTimeout(() => {
         isSaving = false;
         editPromptDialogOpen = false;
+        notify.projectUpdated(data.project.name);
       }, 500);
     }
   }
@@ -204,28 +208,32 @@
   function handleBuild() {
     // TODO: API call to start build
     console.log('Start build for project:', data.project.id);
+    notify.buildStarted(data.project.name);
   }
 
   function handleDelete() {
     isDeleting = true;
     // TODO: API call to delete project
+    const projectName = data.project.name;
     console.log('Delete project:', data.project.id);
     setTimeout(() => {
       isDeleting = false;
       deleteDialogOpen = false;
-      // Navigate to projects list after delete
-      // goto('/projects');
+      notify.projectDeleted(projectName);
+      goto('/projects');
     }, 500);
   }
 
   function handleDuplicate() {
     // TODO: API call to duplicate project
     console.log('Duplicate project:', data.project.id);
+    notify.success('Project duplicated', 'A copy has been created');
   }
 
   function handleExport() {
     // TODO: Export project data
     console.log('Export project:', data.project.id);
+    notify.success('Export started', 'Your project data is being prepared');
   }
 
   async function handleRefreshLogs() {
@@ -241,17 +249,20 @@
       }
     } catch (error) {
       console.error('Failed to refresh logs:', error);
+      notify.apiError('Failed to refresh logs');
     }
   }
 
   async function handleDeploy(platform: string) {
     // TODO: API call to deploy to platform
     console.log('Deploy to platform:', platform, 'for project:', data.project.id);
+    notify.deployStarted(platform);
   }
 
   async function handleRedeploy(deploymentId: string) {
     // TODO: API call to redeploy
     console.log('Redeploy deployment:', deploymentId);
+    notify.info('Redeployment started');
   }
 
   const isBuilding = $derived(

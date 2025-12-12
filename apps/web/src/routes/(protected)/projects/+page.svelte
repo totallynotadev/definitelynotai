@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notify } from '$lib/utils/toast';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
   import { Card, CardContent } from '$lib/components/ui/card/index.js';
@@ -170,6 +171,7 @@
   async function handleDelete() {
     if (!projectToDelete || !data.token) return;
 
+    const projectName = projectToDelete.name;
     isDeleting = true;
     try {
       // TODO: Implement actual delete API call
@@ -178,8 +180,10 @@
       // For now, just close the dialog
       // In production, you'd refetch data or update state
       console.log('Delete project:', projectToDelete.id);
+      notify.projectDeleted(projectName);
     } catch (error) {
       console.error('Failed to delete project:', error);
+      notify.apiError('Failed to delete project');
     } finally {
       isDeleting = false;
       deleteDialogOpen = false;

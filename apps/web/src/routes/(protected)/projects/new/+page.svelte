@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { projectsApi } from '$lib/api';
+  import { notify } from '$lib/utils/toast';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Card, CardContent } from '$lib/components/ui/card/index.js';
   import {
@@ -230,9 +231,10 @@
 
     try {
       const trimmedDescription = description.trim();
+      const projectName = name.trim();
       const result = await projectsApi.create(
         {
-          name: name.trim(),
+          name: projectName,
           ...(trimmedDescription ? { description: trimmedDescription } : {}),
           prompt: prompt.trim(),
           platforms: selectedPlatforms,
@@ -240,10 +242,13 @@
         data.token
       );
 
+      notify.projectCreated(projectName);
       goto(`/projects/${result.project.id}`);
     } catch (e) {
-      errors.submit = e instanceof Error ? e.message : 'Failed to create project';
+      const errorMessage = e instanceof Error ? e.message : 'Failed to create project';
+      errors.submit = errorMessage;
       errors = { ...errors };
+      notify.apiError(errorMessage);
       loading = false;
     }
   }

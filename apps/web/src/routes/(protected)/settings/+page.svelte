@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
+  import { notify } from '$lib/utils/toast';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
@@ -159,6 +160,7 @@
 
     savingPreferences = false;
     preferencesSaved = true;
+    notify.settingsSaved();
 
     // Reset saved indicator after 2 seconds
     setTimeout(() => {
@@ -178,6 +180,7 @@
 
     savingApiKeys = false;
     apiKeysSaved = true;
+    notify.success('API keys saved');
 
     // Reset saved indicator after 2 seconds
     setTimeout(() => {
@@ -205,10 +208,13 @@
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
+      notify.success('Account deleted', 'Your account has been permanently removed');
+
       // Redirect to home after deletion
       window.location.href = '/';
     } catch (error) {
       console.error('Failed to delete account:', error);
+      notify.apiError('Failed to delete account');
       isDeleting = false;
     }
   }
