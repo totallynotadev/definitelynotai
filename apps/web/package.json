@@ -28,6 +28,7 @@
     "vite": "^6.0.3"
   },
   "dependencies": {
+    "@definitelynotai/db": "workspace:*",
     "bits-ui": "^0.21.16",
     "clsx": "^2.1.1",
     "lucide-svelte": "^0.560.0",

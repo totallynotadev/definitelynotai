@@ -23,6 +23,11 @@ export default defineConfig({
       { find: 'bits-ui', replacement: path.resolve(__dirname, '../../node_modules/.bun/bits-ui@0.21.16+c256b0b6a2dbad7b/node_modules/bits-ui/dist/index.js') },
       // Workaround: @melt-ui/svelte only exports "svelte" condition
       { find: '@melt-ui/svelte', replacement: path.resolve(__dirname, '../../node_modules/.bun/@melt-ui+svelte@0.76.2+c256b0b6a2dbad7b/node_modules/@melt-ui/svelte/dist/index.js') },
+      // Workspace packages
+      { find: '@definitelynotai/db', replacement: path.resolve(__dirname, '../../packages/db/dist/index.js') },
     ],
+  },
+  ssr: {
+    noExternal: ['@definitelynotai/db'],
   },
 });
