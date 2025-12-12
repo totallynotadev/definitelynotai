@@ -28,7 +28,7 @@ export const MODEL_CAPABILITIES = {
     maxTokens: 400000,
     supportsReasoning: true,
   },
-  'gemini-2.5-pro': {
+  'gemini-3-pro-preview': {
     provider: 'google',
     strengths: ['frontend', 'multimodal', 'ui-ux', 'visual'],
     costTier: 'premium',
@@ -58,7 +58,7 @@ export const TASK_MODEL_MAP: Record<string, ModelId> = {
 
   // Development - High-quality code generation
   code_backend: 'claude-sonnet-4-5-20250514',
-  code_frontend: 'gemini-2.5-pro',
+  code_frontend: 'gemini-3-pro-preview',
   code_database: 'claude-sonnet-4-5-20250514',
   code_api: 'claude-sonnet-4-5-20250514',
   debug: 'claude-sonnet-4-5-20250514',
@@ -360,7 +360,7 @@ export class ModelRouter {
 
   /**
    * Google AI completion with thinking mode
-   * Uses Gemini 2.5 Pro for maximum quality
+   * Uses Gemini 3 Pro for maximum quality
    */
   private async completeWithGoogle(model: ModelId, params: CompletionParams): Promise<CompletionResult> {
     if (!this.google) {
@@ -372,7 +372,7 @@ export class ModelRouter {
 
     // Get the generative model
     const geminiModel: GenerativeModel = this.google.getGenerativeModel({
-      model: 'gemini-2.5-pro-preview-05-06',
+      model: 'gemini-3-pro-preview',
       generationConfig: {
         maxOutputTokens: maxTokens,
         temperature: params.temperature ?? 0.7,
