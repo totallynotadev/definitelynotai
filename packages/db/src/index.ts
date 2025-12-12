@@ -5,16 +5,22 @@ export {
   deploymentStatusEnum,
   platformEnum,
   agentStepEnum,
+  riskLevelEnum,
+  artifactTypeEnum,
   // Tables
   users,
   projects,
   deployments,
   agentLogs,
+  councilDecisions,
+  artifacts,
   // Relations
   usersRelations,
   projectsRelations,
   deploymentsRelations,
   agentLogsRelations,
+  councilDecisionsRelations,
+  artifactsRelations,
   // Types
   type User,
   type NewUser,
@@ -24,6 +30,10 @@ export {
   type NewDeployment,
   type AgentLog,
   type NewAgentLog,
+  type CouncilDecision,
+  type NewCouncilDecision,
+  type Artifact,
+  type NewArtifact,
 } from './schema';
 
 // Client exports
