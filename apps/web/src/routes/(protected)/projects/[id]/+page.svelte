@@ -1,106 +1,792 @@
 <script lang="ts">
   import { Button } from '$lib/components/ui/button/index.js';
-  import { ArrowLeft, ExternalLink } from 'lucide-svelte';
-  import type { PageData } from './$types';
+  import { Input } from '$lib/components/ui/input/index.js';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
+  import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs/index.js';
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+  } from '$lib/components/ui/dialog/index.js';
+  import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+  } from '$lib/components/ui/alert-dialog/index.js';
+  import { Textarea } from '$lib/components/ui/textarea/index.js';
+  import {
+    ArrowLeft,
+    Play,
+    Settings,
+    Trash2,
+    Pencil,
+    Copy,
+    Download,
+    Globe,
+    Smartphone,
+    Server,
+    ExternalLink,
+    Clock,
+    CheckCircle2,
+    XCircle,
+    Loader2,
+    Code,
+    FileText,
+    Rocket,
+  } from 'lucide-svelte';
 
-  interface Props {
-    data: PageData;
+  type Project = {
+    id: string;
+    name: string;
+    description: string | null;
+    prompt: string;
+    status: string;
+    platforms: string[];
+    createdAt: string;
+    updatedAt: string;
+  };
+
+  type Deployment = {
+    id: string;
+    platform: string;
+    url: string | null;
+    status: string;
+    error: string | null;
+    duration: string | null;
+    createdAt: string;
+    completedAt: string | null;
+  };
+
+  type AgentLog = {
+    id: string;
+    step: string;
+    message: string;
+    metadata: Record<string, unknown> | null;
+    createdAt: string;
+  };
+
+  type PageData = {
+    project: Project;
+    deployments: Deployment[];
+    agentLogs: AgentLog[];
+    token: string | null;
+  };
+
+  let { data }: { data: PageData } = $props();
+
+  // State
+  let editNameMode = $state(false);
+  let editedName = $state(data.project.name);
+  let settingsDialogOpen = $state(false);
+  let deleteDialogOpen = $state(false);
+  let editPromptDialogOpen = $state(false);
+  let editedPrompt = $state(data.project.prompt);
+  let isDeleting = $state(false);
+  let isSaving = $state(false);
+
+  // Status helpers
+  const statusColors: Record<string, { bg: string; text: string; border: string }> = {
+    draft: { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/50' },
+    generating: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', border: 'border-yellow-500/50' },
+    building: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/50' },
+    deployed: { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/50' },
+    failed: { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/50' },
+    archived: { bg: 'bg-gray-600/20', text: 'text-gray-500', border: 'border-gray-600/50' },
+  };
+
+  const deploymentStatusColors: Record<string, { bg: string; text: string }> = {
+    queued: { bg: 'bg-gray-500/20', text: 'text-gray-400' },
+    building: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
+    deploying: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
+    success: { bg: 'bg-green-500/20', text: 'text-green-400' },
+    failed: { bg: 'bg-red-500/20', text: 'text-red-400' },
+    cancelled: { bg: 'bg-gray-600/20', text: 'text-gray-500' },
+  };
+
+  const stepColors: Record<string, { bg: string; text: string }> = {
+    analyzing: { bg: 'bg-purple-500/20', text: 'text-purple-400' },
+    planning: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
+    generating: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
+    reviewing: { bg: 'bg-cyan-500/20', text: 'text-cyan-400' },
+    refining: { bg: 'bg-orange-500/20', text: 'text-orange-400' },
+    testing: { bg: 'bg-indigo-500/20', text: 'text-indigo-400' },
+    complete: { bg: 'bg-green-500/20', text: 'text-green-400' },
+    error: { bg: 'bg-red-500/20', text: 'text-red-400' },
+  };
+
+  function getStatusColor(status: string) {
+    return statusColors[status] || statusColors.draft;
   }
 
-  const { data }: Props = $props();
+  function getDeploymentStatusColor(status: string) {
+    return deploymentStatusColors[status] || deploymentStatusColors.queued;
+  }
 
-  const project = $derived({
-    id: data.id,
-    name: 'E-commerce App',
-    description: 'Full-featured online store with shopping cart, checkout flow, and payment integration.',
-    status: 'deployed',
-    createdAt: 'December 1, 2024',
-    lastUpdated: '2 hours ago',
-    deploymentUrl: 'https://ecommerce-app.pages.dev',
-  });
+  function getStepColor(step: string) {
+    return stepColors[step] || stepColors.analyzing;
+  }
 
-  const buildHistory = [
-    { id: '1', status: 'success', duration: '2m 34s', timestamp: '2 hours ago' },
-    { id: '2', status: 'success', duration: '2m 12s', timestamp: '1 day ago' },
-    { id: '3', status: 'failed', duration: '1m 45s', timestamp: '2 days ago' },
-  ];
+  function capitalizeStatus(status: string): string {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  function formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
+
+  function formatTimeAgo(dateString: string): string {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  }
+
+  function formatDateTime(dateString: string): string {
+    return new Date(dateString).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }
+
+  function getPlatformIcon(platform: string) {
+    const normalized = platform.toLowerCase();
+    if (normalized.includes('web') || normalized.includes('page')) return Globe;
+    if (normalized.includes('ios') || normalized.includes('android') || normalized.includes('mobile'))
+      return Smartphone;
+    if (normalized.includes('api') || normalized.includes('worker') || normalized.includes('backend'))
+      return Server;
+    return Globe;
+  }
+
+  function getPlatformLabel(platform: string): string {
+    const labels: Record<string, string> = {
+      cloudflare_pages: 'Cloudflare Pages',
+      cloudflare_workers: 'Cloudflare Workers',
+      vercel: 'Vercel',
+      netlify: 'Netlify',
+    };
+    return labels[platform] || platform;
+  }
+
+  // Actions
+  function handleSaveName() {
+    if (editedName.trim() && editedName !== data.project.name) {
+      // TODO: API call to save name
+      console.log('Save name:', editedName);
+    }
+    editNameMode = false;
+  }
+
+  function handleCancelEditName() {
+    editedName = data.project.name;
+    editNameMode = false;
+  }
+
+  function handleSavePrompt() {
+    if (editedPrompt.trim() && editedPrompt !== data.project.prompt) {
+      isSaving = true;
+      // TODO: API call to save prompt
+      console.log('Save prompt:', editedPrompt);
+      setTimeout(() => {
+        isSaving = false;
+        editPromptDialogOpen = false;
+      }, 500);
+    }
+  }
+
+  function handleBuild() {
+    // TODO: API call to start build
+    console.log('Start build for project:', data.project.id);
+  }
+
+  function handleDelete() {
+    isDeleting = true;
+    // TODO: API call to delete project
+    console.log('Delete project:', data.project.id);
+    setTimeout(() => {
+      isDeleting = false;
+      deleteDialogOpen = false;
+      // Navigate to projects list after delete
+      // goto('/projects');
+    }, 500);
+  }
+
+  function handleDuplicate() {
+    // TODO: API call to duplicate project
+    console.log('Duplicate project:', data.project.id);
+  }
+
+  function handleExport() {
+    // TODO: Export project data
+    console.log('Export project:', data.project.id);
+  }
+
+  const isBuilding = $derived(
+    data.project.status === 'building' || data.project.status === 'generating'
+  );
+  const latestDeployment = $derived(
+    data.deployments.find((d) => d.status === 'success') || data.deployments[0]
+  );
 </script>
 
 <svelte:head>
-  <title>{project.name} | Definitely Not AI</title>
+  <title>{data.project.name} | Definitely Not AI</title>
 </svelte:head>
 
 <div class="space-y-6">
-  <div class="flex items-center gap-4">
-    <a href="/projects" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white">
-      <ArrowLeft class="h-4 w-4" />
-      Back to Projects
-    </a>
-  </div>
+  <!-- Back Button -->
+  <a
+    href="/projects"
+    class="inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
+  >
+    <ArrowLeft class="h-4 w-4" />
+    Projects
+  </a>
 
-  <div class="flex items-start justify-between">
-    <div>
-      <h1 class="text-3xl font-bold text-white">{project.name}</h1>
-      <p class="mt-2 text-gray-400">{project.description}</p>
-    </div>
-    <div class="flex gap-3">
-      <Button variant="outline" class="border-gray-700 text-gray-300 hover:bg-gray-800">
-        Edit
-      </Button>
-      <Button class="bg-purple-600 hover:bg-purple-700">
-        Deploy
-      </Button>
-    </div>
-  </div>
-
-  <div class="grid gap-6 lg:grid-cols-3">
-    <div class="rounded-lg border border-gray-800 bg-gray-900 p-6">
-      <h3 class="text-sm font-medium text-gray-400">Status</h3>
-      <p class="mt-1 text-lg font-semibold capitalize text-green-400">{project.status}</p>
-    </div>
-    <div class="rounded-lg border border-gray-800 bg-gray-900 p-6">
-      <h3 class="text-sm font-medium text-gray-400">Created</h3>
-      <p class="mt-1 text-lg font-semibold text-white">{project.createdAt}</p>
-    </div>
-    <div class="rounded-lg border border-gray-800 bg-gray-900 p-6">
-      <h3 class="text-sm font-medium text-gray-400">Last Updated</h3>
-      <p class="mt-1 text-lg font-semibold text-white">{project.lastUpdated}</p>
-    </div>
-  </div>
-
-  <div class="rounded-lg border border-gray-800 bg-gray-900 p-6">
-    <h2 class="text-lg font-semibold text-white">Deployment</h2>
-    <div class="mt-4">
-      <p class="text-sm text-gray-400">Live URL</p>
-      <a
-        href={project.deploymentUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        class="mt-1 inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 hover:underline"
-      >
-        {project.deploymentUrl}
-        <ExternalLink class="h-4 w-4" />
-      </a>
-    </div>
-  </div>
-
-  <div class="rounded-lg border border-gray-800 bg-gray-900 p-6">
-    <h2 class="text-lg font-semibold text-white">Build History</h2>
-    <div class="mt-4 space-y-3">
-      {#each buildHistory as build}
-        <div class="flex items-center justify-between rounded-md bg-gray-800 p-3">
-          <div class="flex items-center gap-3">
-            <div
-              class="h-2 w-2 rounded-full {build.status === 'success' ? 'bg-green-500' : 'bg-red-500'}"
-            ></div>
-            <span class="text-sm font-medium capitalize text-gray-300">{build.status}</span>
-          </div>
-          <div class="flex items-center gap-4 text-sm text-gray-500">
-            <span>{build.duration}</span>
-            <span>{build.timestamp}</span>
-          </div>
+  <!-- Page Header -->
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="flex-1">
+      <!-- Editable Project Name -->
+      {#if editNameMode}
+        <div class="flex items-center gap-2">
+          <Input
+            type="text"
+            bind:value={editedName}
+            class="h-10 border-gray-700 bg-gray-900 text-2xl font-bold text-white"
+            onkeydown={(e: KeyboardEvent) => {
+              if (e.key === 'Enter') handleSaveName();
+              if (e.key === 'Escape') handleCancelEditName();
+            }}
+          />
+          <Button size="sm" onclick={handleSaveName} class="bg-purple-600 hover:bg-purple-700">
+            Save
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onclick={handleCancelEditName}
+            class="border-gray-700 text-gray-300 hover:bg-gray-800"
+          >
+            Cancel
+          </Button>
         </div>
-      {/each}
+      {:else}
+        <button
+          onclick={() => (editNameMode = true)}
+          class="group flex items-center gap-2 text-left"
+        >
+          <h1 class="text-2xl font-bold text-white sm:text-3xl">{data.project.name}</h1>
+          <Pencil
+            class="h-4 w-4 text-gray-500 opacity-0 transition-opacity group-hover:opacity-100"
+          />
+        </button>
+      {/if}
+
+      <!-- Status Badge -->
+      <div class="mt-2 flex items-center gap-3">
+        <span
+          class="inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium {getStatusColor(
+            data.project.status
+          ).bg} {getStatusColor(data.project.status).text} {getStatusColor(data.project.status)
+            .border}"
+        >
+          {#if isBuilding}
+            <Loader2 class="mr-1.5 h-3 w-3 animate-spin" />
+          {/if}
+          {capitalizeStatus(data.project.status)}
+        </span>
+        {#if data.project.description}
+          <span class="text-sm text-gray-400">{data.project.description}</span>
+        {/if}
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex items-center gap-2">
+      <Button
+        onclick={handleBuild}
+        disabled={isBuilding}
+        class="bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
+      >
+        {#if isBuilding}
+          <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+          Building...
+        {:else}
+          <Play class="mr-2 h-4 w-4" />
+          Build
+        {/if}
+      </Button>
+      <Button
+        variant="outline"
+        onclick={() => (settingsDialogOpen = true)}
+        class="border-gray-700 text-gray-300 hover:bg-gray-800"
+      >
+        <Settings class="mr-2 h-4 w-4" />
+        Settings
+      </Button>
+      <Button
+        variant="ghost"
+        onclick={() => (deleteDialogOpen = true)}
+        class="text-red-400 hover:bg-red-500/10 hover:text-red-400"
+      >
+        <Trash2 class="h-4 w-4" />
+      </Button>
     </div>
   </div>
+
+  <!-- Tabs -->
+  <Tabs value="overview" class="space-y-6">
+    <TabsList class="border-b border-gray-800 bg-transparent">
+      <TabsTrigger
+        value="overview"
+        class="border-b-2 border-transparent px-4 py-2 text-gray-400 data-[state=active]:border-purple-500 data-[state=active]:text-white"
+      >
+        Overview
+      </TabsTrigger>
+      <TabsTrigger
+        value="logs"
+        class="border-b-2 border-transparent px-4 py-2 text-gray-400 data-[state=active]:border-purple-500 data-[state=active]:text-white"
+      >
+        Agent Logs
+      </TabsTrigger>
+      <TabsTrigger
+        value="deployments"
+        class="border-b-2 border-transparent px-4 py-2 text-gray-400 data-[state=active]:border-purple-500 data-[state=active]:text-white"
+      >
+        Deployments
+      </TabsTrigger>
+      <TabsTrigger
+        value="code"
+        class="border-b-2 border-transparent px-4 py-2 text-gray-400 data-[state=active]:border-purple-500 data-[state=active]:text-white"
+      >
+        Code
+      </TabsTrigger>
+    </TabsList>
+
+    <!-- Overview Tab -->
+    <TabsContent value="overview" class="mt-6">
+      <div class="grid gap-6 lg:grid-cols-3">
+        <!-- Left Column (2/3) -->
+        <div class="space-y-6 lg:col-span-2">
+          <!-- Prompt Card -->
+          <Card class="border-gray-800 bg-gray-900">
+            <CardHeader class="flex flex-row items-center justify-between pb-2">
+              <CardTitle class="text-sm font-medium text-gray-400">What you asked for</CardTitle>
+              <Button
+                size="sm"
+                variant="ghost"
+                onclick={() => {
+                  editedPrompt = data.project.prompt;
+                  editPromptDialogOpen = true;
+                }}
+                class="h-8 text-gray-400 hover:text-white"
+              >
+                <Pencil class="mr-1 h-3 w-3" />
+                Edit
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <p class="whitespace-pre-wrap text-white">{data.project.prompt}</p>
+            </CardContent>
+          </Card>
+
+          <!-- Generated Plan Card -->
+          <Card class="border-gray-800 bg-gray-900">
+            <CardHeader>
+              <CardTitle class="text-sm font-medium text-gray-400">Generated Plan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {#if data.project.status === 'draft'}
+                <div class="flex flex-col items-center justify-center py-8 text-center">
+                  <div
+                    class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/10"
+                  >
+                    <Rocket class="h-6 w-6 text-purple-400" />
+                  </div>
+                  <p class="text-gray-400">
+                    Click "Build" to generate an AI plan for your project.
+                  </p>
+                </div>
+              {:else}
+                <div class="space-y-4">
+                  <div>
+                    <h4 class="text-sm font-medium text-gray-400">App Summary</h4>
+                    <p class="mt-1 text-white">
+                      {data.project.description || 'AI-generated application based on your prompt.'}
+                    </p>
+                  </div>
+
+                  {#if data.project.platforms.length > 0}
+                    <div>
+                      <h4 class="text-sm font-medium text-gray-400">Target Platforms</h4>
+                      <div class="mt-2 flex flex-wrap gap-2">
+                        {#each data.project.platforms as platform}
+                          {@const Icon = getPlatformIcon(platform)}
+                          <span
+                            class="inline-flex items-center gap-1.5 rounded-md bg-gray-800 px-2.5 py-1 text-sm text-gray-300"
+                          >
+                            <Icon class="h-3.5 w-3.5" />
+                            {getPlatformLabel(platform)}
+                          </span>
+                        {/each}
+                      </div>
+                    </div>
+                  {/if}
+
+                  <!-- Placeholder for future plan details -->
+                  <div class="rounded-lg border border-dashed border-gray-700 p-4 text-center">
+                    <p class="text-sm text-gray-500">
+                      Detailed plan information will appear here after the AI analyzes your prompt.
+                    </p>
+                  </div>
+                </div>
+              {/if}
+            </CardContent>
+          </Card>
+        </div>
+
+        <!-- Right Column (1/3) -->
+        <div class="space-y-6">
+          <!-- Details Card -->
+          <Card class="border-gray-800 bg-gray-900">
+            <CardHeader>
+              <CardTitle class="text-sm font-medium text-gray-400">Details</CardTitle>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <div>
+                <p class="text-xs text-gray-500">Created</p>
+                <p class="text-sm text-white">{formatDate(data.project.createdAt)}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Updated</p>
+                <p class="text-sm text-white">{formatTimeAgo(data.project.updatedAt)}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Status</p>
+                <span
+                  class="mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium {getStatusColor(
+                    data.project.status
+                  ).bg} {getStatusColor(data.project.status).text}"
+                >
+                  {capitalizeStatus(data.project.status)}
+                </span>
+              </div>
+              {#if data.project.platforms.length > 0}
+                <div>
+                  <p class="text-xs text-gray-500">Platforms</p>
+                  <div class="mt-1 flex gap-2">
+                    {#each data.project.platforms as platform}
+                      {@const Icon = getPlatformIcon(platform)}
+                      <div
+                        class="flex h-8 w-8 items-center justify-center rounded-md bg-gray-800"
+                        title={getPlatformLabel(platform)}
+                      >
+                        <Icon class="h-4 w-4 text-gray-400" />
+                      </div>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            </CardContent>
+          </Card>
+
+          <!-- Quick Actions Card -->
+          <Card class="border-gray-800 bg-gray-900">
+            <CardHeader>
+              <CardTitle class="text-sm font-medium text-gray-400">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent class="space-y-2">
+              <Button
+                onclick={handleBuild}
+                disabled={isBuilding}
+                class="w-full justify-start bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
+              >
+                <Play class="mr-2 h-4 w-4" />
+                {isBuilding ? 'Building...' : 'Start Build'}
+              </Button>
+              <Button
+                variant="outline"
+                onclick={handleDuplicate}
+                class="w-full justify-start border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                <Copy class="mr-2 h-4 w-4" />
+                Duplicate Project
+              </Button>
+              <Button
+                variant="outline"
+                onclick={handleExport}
+                class="w-full justify-start border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                <Download class="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </TabsContent>
+
+    <!-- Agent Logs Tab -->
+    <TabsContent value="logs" class="mt-6">
+      <Card class="border-gray-800 bg-gray-900">
+        <CardHeader>
+          <CardTitle class="text-white">Agent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {#if data.agentLogs.length === 0}
+            <div class="flex flex-col items-center justify-center py-12 text-center">
+              <FileText class="mb-4 h-12 w-12 text-gray-600" />
+              <h3 class="text-lg font-medium text-white">No activity yet</h3>
+              <p class="mt-1 text-gray-400">Agent logs will appear here once you start a build.</p>
+            </div>
+          {:else}
+            <div class="space-y-3">
+              {#each data.agentLogs as log}
+                <div class="flex items-start gap-3 rounded-lg bg-gray-800/50 p-3">
+                  <div class="mt-0.5">
+                    {#if log.step === 'complete'}
+                      <CheckCircle2 class="h-5 w-5 text-green-400" />
+                    {:else if log.step === 'error'}
+                      <XCircle class="h-5 w-5 text-red-400" />
+                    {:else}
+                      <Clock class="h-5 w-5 text-gray-400" />
+                    {/if}
+                  </div>
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="rounded-full px-2 py-0.5 text-xs font-medium {getStepColor(log.step)
+                          .bg} {getStepColor(log.step).text}"
+                      >
+                        {capitalizeStatus(log.step)}
+                      </span>
+                      <span class="text-xs text-gray-500">{formatDateTime(log.createdAt)}</span>
+                    </div>
+                    <p class="mt-1 text-sm text-gray-300">{log.message}</p>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </CardContent>
+      </Card>
+    </TabsContent>
+
+    <!-- Deployments Tab -->
+    <TabsContent value="deployments" class="mt-6">
+      <Card class="border-gray-800 bg-gray-900">
+        <CardHeader>
+          <CardTitle class="text-white">Deployment History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {#if data.deployments.length === 0}
+            <div class="flex flex-col items-center justify-center py-12 text-center">
+              <Globe class="mb-4 h-12 w-12 text-gray-600" />
+              <h3 class="text-lg font-medium text-white">No deployments yet</h3>
+              <p class="mt-1 text-gray-400">
+                Your deployments will appear here once you build and deploy your project.
+              </p>
+            </div>
+          {:else}
+            <div class="space-y-3">
+              {#each data.deployments as deployment}
+                <div
+                  class="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-800/30 p-4"
+                >
+                  <div class="flex items-center gap-4">
+                    <div
+                      class="flex h-10 w-10 items-center justify-center rounded-lg {getDeploymentStatusColor(
+                        deployment.status
+                      ).bg}"
+                    >
+                      {#if deployment.status === 'success'}
+                        <CheckCircle2
+                          class="h-5 w-5 {getDeploymentStatusColor(deployment.status).text}"
+                        />
+                      {:else if deployment.status === 'failed'}
+                        <XCircle
+                          class="h-5 w-5 {getDeploymentStatusColor(deployment.status).text}"
+                        />
+                      {:else if deployment.status === 'building' || deployment.status === 'deploying'}
+                        <Loader2
+                          class="h-5 w-5 animate-spin {getDeploymentStatusColor(deployment.status)
+                            .text}"
+                        />
+                      {:else}
+                        <Clock class="h-5 w-5 {getDeploymentStatusColor(deployment.status).text}" />
+                      {/if}
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="font-medium text-white">
+                          {getPlatformLabel(deployment.platform)}
+                        </span>
+                        <span
+                          class="rounded-full px-2 py-0.5 text-xs font-medium {getDeploymentStatusColor(
+                            deployment.status
+                          ).bg} {getDeploymentStatusColor(deployment.status).text}"
+                        >
+                          {capitalizeStatus(deployment.status)}
+                        </span>
+                      </div>
+                      <div class="mt-1 flex items-center gap-3 text-sm text-gray-400">
+                        <span>{formatDateTime(deployment.createdAt)}</span>
+                        {#if deployment.duration}
+                          <span>• {deployment.duration}</span>
+                        {/if}
+                      </div>
+                    </div>
+                  </div>
+                  {#if deployment.url}
+                    <a
+                      href={deployment.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="flex items-center gap-1 text-sm text-purple-400 hover:text-purple-300"
+                    >
+                      View
+                      <ExternalLink class="h-3 w-3" />
+                    </a>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </CardContent>
+      </Card>
+    </TabsContent>
+
+    <!-- Code Tab (Placeholder) -->
+    <TabsContent value="code" class="mt-6">
+      <Card class="border-gray-800 bg-gray-900">
+        <CardContent class="flex flex-col items-center justify-center py-16 text-center">
+          <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-800">
+            <Code class="h-8 w-8 text-gray-500" />
+          </div>
+          <h3 class="text-lg font-medium text-white">Code Preview Coming Soon</h3>
+          <p class="mt-2 max-w-md text-gray-400">
+            View and edit the generated code for your project. This feature will be available in a
+            future update.
+          </p>
+        </CardContent>
+      </Card>
+    </TabsContent>
+  </Tabs>
 </div>
+
+<!-- Edit Prompt Dialog -->
+<Dialog bind:open={editPromptDialogOpen}>
+  <DialogContent class="border-gray-800 bg-gray-900 sm:max-w-lg">
+    <DialogHeader>
+      <DialogTitle class="text-white">Edit Prompt</DialogTitle>
+      <DialogDescription class="text-gray-400">
+        Update the prompt that describes what you want to build.
+      </DialogDescription>
+    </DialogHeader>
+    <div class="py-4">
+      <Textarea
+        bind:value={editedPrompt}
+        rows={6}
+        class="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
+        placeholder="Describe what you want to build..."
+      />
+    </div>
+    <DialogFooter>
+      <Button
+        variant="outline"
+        onclick={() => (editPromptDialogOpen = false)}
+        class="border-gray-700 text-gray-300 hover:bg-gray-800"
+      >
+        Cancel
+      </Button>
+      <Button onclick={handleSavePrompt} disabled={isSaving} class="bg-purple-600 hover:bg-purple-700">
+        {isSaving ? 'Saving...' : 'Save Changes'}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+<!-- Settings Dialog -->
+<Dialog bind:open={settingsDialogOpen}>
+  <DialogContent class="border-gray-800 bg-gray-900 sm:max-w-lg">
+    <DialogHeader>
+      <DialogTitle class="text-white">Project Settings</DialogTitle>
+      <DialogDescription class="text-gray-400">
+        Configure your project settings and preferences.
+      </DialogDescription>
+    </DialogHeader>
+    <div class="space-y-4 py-4">
+      <div>
+        <label class="text-sm font-medium text-gray-300">Project Name</label>
+        <Input
+          type="text"
+          value={data.project.name}
+          class="mt-1 border-gray-700 bg-gray-800 text-white"
+        />
+      </div>
+      <div>
+        <label class="text-sm font-medium text-gray-300">Description</label>
+        <Textarea
+          value={data.project.description || ''}
+          rows={3}
+          class="mt-1 border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
+          placeholder="Add a description..."
+        />
+      </div>
+    </div>
+    <DialogFooter>
+      <Button
+        variant="outline"
+        onclick={() => (settingsDialogOpen = false)}
+        class="border-gray-700 text-gray-300 hover:bg-gray-800"
+      >
+        Cancel
+      </Button>
+      <Button class="bg-purple-600 hover:bg-purple-700">Save Settings</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+<!-- Delete Confirmation Dialog -->
+<AlertDialog bind:open={deleteDialogOpen}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Delete Project</AlertDialogTitle>
+      <AlertDialogDescription>
+        Are you sure you want to delete "{data.project.name}"? This action cannot be undone and will
+        permanently remove the project, all deployments, and generated code.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel class="border-gray-700 text-gray-300 hover:bg-gray-800">
+        Cancel
+      </AlertDialogCancel>
+      <AlertDialogAction
+        class="bg-red-600 text-white hover:bg-red-700"
+        onclick={handleDelete}
+        disabled={isDeleting}
+      >
+        {isDeleting ? 'Deleting...' : 'Delete Project'}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
