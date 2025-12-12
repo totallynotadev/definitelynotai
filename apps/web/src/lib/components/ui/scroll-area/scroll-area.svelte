@@ -2,18 +2,18 @@
   import { ScrollArea as ScrollAreaPrimitive } from 'bits-ui';
   import { cn } from '$lib/utils.js';
   import Scrollbar from './scroll-area-scrollbar.svelte';
-  import type { Snippet, ComponentProps } from 'svelte';
+  import type { Snippet } from 'svelte';
 
-  type Props = ComponentProps<typeof ScrollAreaPrimitive.Root> & {
+  type Props = {
     class?: string;
     orientation?: 'vertical' | 'horizontal' | 'both';
     children?: Snippet;
   };
 
-  let { class: className, orientation = 'vertical', children, ...restProps }: Props = $props();
+  let { class: className, orientation = 'vertical', children }: Props = $props();
 </script>
 
-<ScrollAreaPrimitive.Root class={cn('relative overflow-hidden', className)} {...restProps}>
+<ScrollAreaPrimitive.Root class={cn('relative overflow-hidden', className)}>
   <ScrollAreaPrimitive.Viewport class="h-full w-full rounded-[inherit]">
     {#if children}
       {@render children()}

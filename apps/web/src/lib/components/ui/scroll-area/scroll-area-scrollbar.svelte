@@ -1,13 +1,13 @@
 <script lang="ts">
   import { ScrollArea as ScrollAreaPrimitive } from 'bits-ui';
   import { cn } from '$lib/utils.js';
-  import type { ComponentProps } from 'svelte';
 
-  type Props = ComponentProps<typeof ScrollAreaPrimitive.Scrollbar> & {
+  type Props = {
     class?: string;
+    orientation?: 'vertical' | 'horizontal';
   };
 
-  let { class: className, orientation = 'vertical', ...restProps }: Props = $props();
+  let { class: className, orientation = 'vertical' }: Props = $props();
 </script>
 
 <ScrollAreaPrimitive.Scrollbar
@@ -18,7 +18,6 @@
     orientation === 'horizontal' && 'h-2.5 flex-col border-t border-t-transparent p-[1px]',
     className
   )}
-  {...restProps}
 >
   <ScrollAreaPrimitive.Thumb class="relative flex-1 rounded-full bg-border" />
 </ScrollAreaPrimitive.Scrollbar>

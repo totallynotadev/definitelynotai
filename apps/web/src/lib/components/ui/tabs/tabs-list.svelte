@@ -2,14 +2,13 @@
   import { Tabs as TabsPrimitive } from 'bits-ui';
   import { cn } from '$lib/utils.js';
   import type { Snippet } from 'svelte';
-  import type { HTMLAttributes } from 'svelte/elements';
 
-  type Props = HTMLAttributes<HTMLDivElement> & {
+  type Props = {
     class?: string;
     children?: Snippet;
   };
 
-  let { class: className, children, ...restProps }: Props = $props();
+  let { class: className, children }: Props = $props();
 </script>
 
 <TabsPrimitive.List
