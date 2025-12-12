@@ -7,14 +7,14 @@ import { GoogleGenerativeAI, type GenerativeModel } from '@google/generative-ai'
  * Optimized for QUALITY - premium models preferred
  */
 export const MODEL_CAPABILITIES = {
-  'claude-opus-4-5-20250514': {
+  'claude-opus-4-5-20251101': {
     provider: 'anthropic',
     strengths: ['architecture', 'reasoning', 'safety', 'qa', 'orchestration'],
     costTier: 'premium',
     maxTokens: 200000,
     supportsExtendedThinking: true,
   },
-  'claude-sonnet-4-5-20250514': {
+  'claude-sonnet-4-5-20250929': {
     provider: 'anthropic',
     strengths: ['coding', 'debugging', 'agents', 'long-running'],
     costTier: 'standard',
@@ -53,21 +53,21 @@ export type Provider = 'anthropic' | 'openai' | 'google' | 'xai';
  */
 export const TASK_MODEL_MAP: Record<string, ModelId> = {
   // Orchestration - Premium reasoning required
-  orchestrate: 'claude-opus-4-5-20250514',
+  orchestrate: 'claude-opus-4-5-20251101',
   plan: 'gpt-5.2-pro',
 
   // Development - High-quality code generation
-  code_backend: 'claude-sonnet-4-5-20250514',
+  code_backend: 'claude-sonnet-4-5-20250929',
   code_frontend: 'gemini-3-pro-preview',
-  code_database: 'claude-sonnet-4-5-20250514',
-  code_api: 'claude-sonnet-4-5-20250514',
-  debug: 'claude-sonnet-4-5-20250514',
-  refactor: 'claude-sonnet-4-5-20250514',
+  code_database: 'claude-sonnet-4-5-20250929',
+  code_api: 'claude-sonnet-4-5-20250929',
+  debug: 'claude-sonnet-4-5-20250929',
+  refactor: 'claude-sonnet-4-5-20250929',
 
   // Quality - Premium models for critical review
-  review: 'claude-opus-4-5-20250514',
-  security_audit: 'claude-opus-4-5-20250514',
-  test_generation: 'claude-sonnet-4-5-20250514',
+  review: 'claude-opus-4-5-20251101',
+  security_audit: 'claude-opus-4-5-20251101',
+  test_generation: 'claude-sonnet-4-5-20250929',
 
   // Documentation - Premium for accuracy
   docs_api: 'gpt-5.2-pro',
@@ -75,7 +75,7 @@ export const TASK_MODEL_MAP: Record<string, ModelId> = {
   changelog: 'gpt-5.2-pro',
 
   // Operations
-  deploy: 'claude-sonnet-4-5-20250514',
+  deploy: 'claude-sonnet-4-5-20250929',
   monitor: 'grok-4-0709',
   research: 'grok-4-0709',
 
@@ -85,7 +85,7 @@ export const TASK_MODEL_MAP: Record<string, ModelId> = {
   approval: 'gpt-5.2-pro',
 
   // Default fallback
-  general: 'claude-sonnet-4-5-20250514',
+  general: 'claude-sonnet-4-5-20250929',
 };
 
 /**
@@ -173,7 +173,7 @@ export class ModelRouter {
    * Get the optimal model for a given task type
    */
   getModelForTask(taskType: string): ModelId {
-    return TASK_MODEL_MAP[taskType] || TASK_MODEL_MAP['general'] || 'claude-sonnet-4-5-20250514';
+    return TASK_MODEL_MAP[taskType] || TASK_MODEL_MAP['general'] || 'claude-sonnet-4-5-20250929';
   }
 
   /**
@@ -213,7 +213,7 @@ export class ModelRouter {
     // Check if provider is available, fallback to Anthropic if not
     if (!this.isProviderAvailable(provider)) {
       console.warn(`Provider ${provider} not available, falling back to Anthropic`);
-      return this.completeWithAnthropic('claude-sonnet-4-5-20250514', params);
+      return this.completeWithAnthropic('claude-sonnet-4-5-20250929', params);
     }
 
     // Route to appropriate provider
@@ -227,7 +227,7 @@ export class ModelRouter {
       case 'xai':
         return this.completeWithXAI(model, params);
       default:
-        return this.completeWithAnthropic('claude-sonnet-4-5-20250514', params);
+        return this.completeWithAnthropic('claude-sonnet-4-5-20250929', params);
     }
   }
 
