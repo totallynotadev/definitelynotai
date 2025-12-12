@@ -19,6 +19,10 @@ export default defineConfig({
       { find: 'svelte-clerk/server', replacement: path.resolve(__dirname, 'node_modules/svelte-clerk/dist/server/index.js') },
       { find: 'svelte-clerk/client', replacement: path.resolve(__dirname, 'node_modules/svelte-clerk/dist/client/index.js') },
       { find: 'svelte-clerk', replacement: path.resolve(__dirname, 'node_modules/svelte-clerk/dist/index.js') },
+      // Workaround: bits-ui only exports "svelte" condition
+      { find: 'bits-ui', replacement: path.resolve(__dirname, '../../node_modules/.bun/bits-ui@0.21.16+c256b0b6a2dbad7b/node_modules/bits-ui/dist/index.js') },
+      // Workaround: @melt-ui/svelte only exports "svelte" condition
+      { find: '@melt-ui/svelte', replacement: path.resolve(__dirname, '../../node_modules/.bun/@melt-ui+svelte@0.76.2+c256b0b6a2dbad7b/node_modules/@melt-ui/svelte/dist/index.js') },
     ],
   },
 });

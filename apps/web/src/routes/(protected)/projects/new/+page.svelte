@@ -1,6 +1,8 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { projectsApi } from '$lib/api';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { ArrowLeft } from 'lucide-svelte';
   import type { PageData } from './$types';
 
   interface Props {
@@ -85,20 +87,20 @@
 
 <div class="mx-auto max-w-2xl">
   <div class="mb-6">
-    <a href="/projects" class="text-sm text-gray-500 hover:text-gray-700">
-      &larr; Back to Projects
+    <a href="/projects" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white">
+      <ArrowLeft class="h-4 w-4" />
+      Back to Projects
     </a>
   </div>
 
-  <h1 class="text-3xl font-bold text-gray-900 mb-2">Create New Project</h1>
-  <p class="text-gray-600 mb-8">
+  <p class="text-gray-400 mb-8">
     Describe what you want to build and we'll generate it for you.
   </p>
 
   <form onsubmit={handleSubmit} class="space-y-6">
     <!-- Project Name -->
     <div>
-      <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+      <label for="name" class="block text-sm font-medium text-gray-300 mb-2">
         Project Name
       </label>
       <input
@@ -106,27 +108,27 @@
         type="text"
         bind:value={name}
         placeholder="My Awesome App"
-        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+        class="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2.5 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
       />
     </div>
 
     <!-- Description (optional) -->
     <div>
-      <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-        Description <span class="text-gray-400">(optional)</span>
+      <label for="description" class="block text-sm font-medium text-gray-300 mb-2">
+        Description <span class="text-gray-500">(optional)</span>
       </label>
       <input
         id="description"
         type="text"
         bind:value={description}
         placeholder="A brief description of your project"
-        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+        class="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2.5 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
       />
     </div>
 
     <!-- Prompt -->
     <div>
-      <label for="prompt" class="block text-sm font-medium text-gray-700 mb-2">
+      <label for="prompt" class="block text-sm font-medium text-gray-300 mb-2">
         What do you want to build?
       </label>
       <textarea
@@ -134,18 +136,18 @@
         bind:value={prompt}
         rows={4}
         placeholder="Describe your app in plain English. Be as detailed as you like..."
-        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 resize-none"
+        class="w-full resize-none rounded-lg border border-gray-700 bg-gray-800 px-4 py-2.5 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
       ></textarea>
 
       <!-- Example prompts -->
       <div class="mt-3">
-        <p class="text-xs text-gray-500 mb-2">Try an example:</p>
+        <p class="mb-2 text-xs text-gray-500">Try an example:</p>
         <div class="flex flex-wrap gap-2">
           {#each examplePrompts as example}
             <button
               type="button"
               onclick={() => useExample(example)}
-              class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2.5 py-1 rounded-md transition"
+              class="rounded-md bg-gray-800 px-2.5 py-1 text-xs text-gray-400 transition hover:bg-gray-700 hover:text-white"
             >
               {example.slice(0, 35)}...
             </button>
@@ -156,58 +158,58 @@
 
     <!-- Platforms -->
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-3">
+      <label class="block text-sm font-medium text-gray-300 mb-3">
         Target Platforms
       </label>
       <div class="flex flex-wrap gap-4">
-        <label class="flex items-center gap-2 cursor-pointer">
+        <label class="flex cursor-pointer items-center gap-2">
           <input
             type="checkbox"
             bind:checked={platforms.web}
-            class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="h-4 w-4 rounded border-gray-600 bg-gray-800 text-purple-600 focus:ring-purple-500"
           />
-          <span class="text-gray-700">Web</span>
+          <span class="text-gray-300">Web</span>
         </label>
-        <label class="flex items-center gap-2 cursor-pointer">
+        <label class="flex cursor-pointer items-center gap-2">
           <input
             type="checkbox"
             bind:checked={platforms.ios}
-            class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="h-4 w-4 rounded border-gray-600 bg-gray-800 text-purple-600 focus:ring-purple-500"
           />
-          <span class="text-gray-700">iOS</span>
+          <span class="text-gray-300">iOS</span>
         </label>
-        <label class="flex items-center gap-2 cursor-pointer">
+        <label class="flex cursor-pointer items-center gap-2">
           <input
             type="checkbox"
             bind:checked={platforms.android}
-            class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="h-4 w-4 rounded border-gray-600 bg-gray-800 text-purple-600 focus:ring-purple-500"
           />
-          <span class="text-gray-700">Android</span>
+          <span class="text-gray-300">Android</span>
         </label>
-        <label class="flex items-center gap-2 cursor-pointer">
+        <label class="flex cursor-pointer items-center gap-2">
           <input
             type="checkbox"
             bind:checked={platforms.api}
-            class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="h-4 w-4 rounded border-gray-600 bg-gray-800 text-purple-600 focus:ring-purple-500"
           />
-          <span class="text-gray-700">API</span>
+          <span class="text-gray-300">API</span>
         </label>
       </div>
     </div>
 
     <!-- Error -->
     {#if error}
-      <div class="rounded-lg border border-red-200 bg-red-50 p-3">
-        <p class="text-red-700 text-sm">{error}</p>
+      <div class="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+        <p class="text-sm text-red-400">{error}</p>
       </div>
     {/if}
 
     <!-- Submit -->
     <div class="flex gap-4 pt-4">
-      <button
+      <Button
         type="submit"
         disabled={loading}
-        class="btn-primary flex-1 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="flex-1 bg-purple-600 py-3 hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {#if loading}
           <span class="flex items-center justify-center gap-2">
@@ -220,13 +222,14 @@
         {:else}
           Create Project
         {/if}
-      </button>
-      <a
+      </Button>
+      <Button
         href="/projects"
-        class="btn-secondary px-6 py-3"
+        variant="outline"
+        class="border-gray-700 px-6 py-3 text-gray-300 hover:bg-gray-800"
       >
         Cancel
-      </a>
+      </Button>
     </div>
   </form>
 </div>
