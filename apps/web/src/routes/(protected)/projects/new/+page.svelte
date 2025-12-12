@@ -1,10 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { projectsApi } from '$lib/api';
-  import { notify } from '$lib/utils/toast';
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Card, CardContent } from '$lib/components/ui/card/index.js';
-  import { fade } from 'svelte/transition';
   import {
     ArrowLeft,
     ArrowRight,
@@ -18,7 +12,16 @@
     AlertCircle,
     Lightbulb,
   } from 'lucide-svelte';
+  import { fade } from 'svelte/transition';
+
+  import { projectsApi } from '$lib/api';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Card, CardContent } from '$lib/components/ui/card/index.js';
+  import { notify } from '$lib/utils/toast';
+
   import type { PageData } from './$types';
+
+  import { goto } from '$app/navigation';
 
   interface Props {
     data: PageData;
@@ -41,7 +44,7 @@
   let currentStep = $state(1);
   let loading = $state(false);
   let errors = $state<Record<string, string>>({});
-  let touched = $state<Record<string, boolean>>({});
+  const touched = $state<Record<string, boolean>>({});
 
   const totalSteps = 3;
 
@@ -189,20 +192,20 @@
       currentStep = step;
     } else if (step === 2 && canProceedStep1) {
       validateField('name');
-      if (!errors.name) currentStep = 2;
+      if (!errors.name) {currentStep = 2;}
     } else if (step === 3 && canProceedStep1 && canProceedStep2) {
       validateField('prompt');
-      if (!errors.prompt) currentStep = 3;
+      if (!errors.prompt) {currentStep = 3;}
     }
   }
 
   function nextStep() {
     if (currentStep === 1) {
       validateField('name');
-      if (!errors.name) currentStep = 2;
+      if (!errors.name) {currentStep = 2;}
     } else if (currentStep === 2) {
       validateField('prompt');
-      if (!errors.prompt) currentStep = 3;
+      if (!errors.prompt) {currentStep = 3;}
     }
   }
 
@@ -328,7 +331,7 @@
   <div class="grid gap-8 lg:grid-cols-3">
     <!-- Form Section -->
     <div class="lg:col-span-2">
-      <form onsubmit={(e) => { e.preventDefault(); if (currentStep === 3) handleSubmit(); else nextStep(); }}>
+      <form onsubmit={(e) => { e.preventDefault(); if (currentStep === 3) {handleSubmit();} else {nextStep();} }}>
         <!-- Step 1: Basic Info -->
         {#if currentStep === 1}
           <Card class="border-gray-800 bg-gray-900">

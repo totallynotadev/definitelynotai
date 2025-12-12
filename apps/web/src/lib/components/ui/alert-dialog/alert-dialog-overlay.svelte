@@ -1,12 +1,13 @@
 <script lang="ts">
   import { AlertDialog as AlertDialogPrimitive } from 'bits-ui';
+
   import { cn } from '$lib/utils.js';
 
   type Props = {
     class?: string;
   };
 
-  let { class: className }: Props = $props();
+  const { class: className }: Props = $props();
 </script>
 
 <AlertDialogPrimitive.Overlay

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui';
+
   import { cn } from '$lib/utils.js';
+
   import type { Snippet } from 'svelte';
 
   type Props = {
@@ -9,7 +11,7 @@
     children?: Snippet;
   };
 
-  let { class: className, sideOffset = 4, children }: Props = $props();
+  const { class: className, sideOffset = 4, children }: Props = $props();
 </script>
 
 <DropdownMenuPrimitive.Content

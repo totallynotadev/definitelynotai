@@ -1,12 +1,13 @@
 <script lang="ts">
   import { Dialog as DialogPrimitive } from 'bits-ui';
+
   import { cn } from '$lib/utils.js';
 
   type Props = {
     class?: string;
   };
 
-  let { class: className }: Props = $props();
+  const { class: className }: Props = $props();
 </script>
 
 <DialogPrimitive.Overlay

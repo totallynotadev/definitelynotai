@@ -1,7 +1,8 @@
 <script lang="ts">
   import { Checkbox as CheckboxPrimitive } from 'bits-ui';
-  import { cn } from '$lib/utils.js';
   import { Check, Minus } from 'lucide-svelte';
+
+  import { cn } from '$lib/utils.js';
 
   type Props = {
     class?: string;

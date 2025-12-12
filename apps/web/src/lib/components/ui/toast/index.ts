@@ -1,10 +1,10 @@
 import { Toaster } from 'svelte-sonner';
 
-import Root from './toast.svelte';
 import Action from './toast-action.svelte';
 import Close from './toast-close.svelte';
 import Description from './toast-description.svelte';
 import Title from './toast-title.svelte';
+import Root from './toast.svelte';
 
 export {
   Toaster,

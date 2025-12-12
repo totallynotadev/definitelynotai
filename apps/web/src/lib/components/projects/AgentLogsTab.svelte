@@ -1,7 +1,4 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
   import {
     CheckCircle2,
     XCircle,
@@ -11,6 +8,10 @@
     Rocket,
     ScrollText,
   } from 'lucide-svelte';
+  import { onMount, onDestroy } from 'svelte';
+
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
 
   type AgentLog = {
     id: string;
@@ -20,14 +21,14 @@
     createdAt: string;
   };
 
-  type Props = {
+  interface Props {
     logs: AgentLog[];
     projectId: string;
     projectStatus: string;
     onRefresh?: () => Promise<void>;
-  };
+  }
 
-  let { logs, projectId, projectStatus, onRefresh }: Props = $props();
+  const { logs, projectId: _projectId, projectStatus, onRefresh }: Props = $props();
 
   // State
   let autoScroll = $state(true);
@@ -119,10 +120,10 @@
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diffInSeconds < 10) return 'Just now';
-    if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 10) {return 'Just now';}
+    if (diffInSeconds < 60) {return `${diffInSeconds}s ago`;}
+    if (diffInSeconds < 3600) {return `${Math.floor(diffInSeconds / 60)} min ago`;}
+    if (diffInSeconds < 86400) {return `${Math.floor(diffInSeconds / 3600)}h ago`;}
     return date.toLocaleDateString();
   }
 
@@ -141,7 +142,7 @@
   }
 
   async function handleRefresh() {
-    if (isRefreshing || !onRefresh) return;
+    if (isRefreshing || !onRefresh) {return;}
     isRefreshing = true;
     try {
       await onRefresh();
@@ -165,12 +166,12 @@
   );
 
   // Get status for each log entry
-  function getLogStatus(log: AgentLog, index: number, allLogs: AgentLog[]): 'complete' | 'error' | 'in_progress' {
-    if (log.step === 'error') return 'error';
-    if (log.step === 'complete') return 'complete';
+  function getLogStatus(log: AgentLog, index: number, _allLogs: AgentLog[]): 'complete' | 'error' | 'in_progress' {
+    if (log.step === 'error') {return 'error';}
+    if (log.step === 'complete') {return 'complete';}
 
     // If this is the latest log and project is still building, it's in progress
-    if (index === 0 && isBuilding) return 'in_progress';
+    if (index === 0 && isBuilding) {return 'in_progress';}
 
     // Otherwise it's complete
     return 'complete';

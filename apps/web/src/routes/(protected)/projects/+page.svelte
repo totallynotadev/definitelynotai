@@ -1,43 +1,4 @@
 <script lang="ts">
-  import { notify } from '$lib/utils/toast';
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Input } from '$lib/components/ui/input/index.js';
-  import { Card, CardContent } from '$lib/components/ui/card/index.js';
-  import { Skeleton } from '$lib/components/ui/skeleton/index.js';
-  import { ProjectCardSkeleton } from '$lib/components/skeletons/index.js';
-  import { fade } from 'svelte/transition';
-  import { navigating } from '$app/stores';
-  import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-  } from '$lib/components/ui/select/index.js';
-  import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-  } from '$lib/components/ui/table/index.js';
-  import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-  } from '$lib/components/ui/dropdown-menu/index.js';
-  import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-  } from '$lib/components/ui/alert-dialog/index.js';
   import {
     Plus,
     Search,
@@ -52,6 +13,50 @@
     Trash2,
     Rocket,
   } from 'lucide-svelte';
+  import { fade } from 'svelte/transition';
+
+  import { ProjectCardSkeleton } from '$lib/components/skeletons/index.js';
+  import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+  } from '$lib/components/ui/alert-dialog/index.js';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Card, CardContent } from '$lib/components/ui/card/index.js';
+  import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+  } from '$lib/components/ui/dropdown-menu/index.js';
+  import { Input } from '$lib/components/ui/input/index.js';
+  import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+  } from '$lib/components/ui/select/index.js';
+  import { Skeleton } from '$lib/components/ui/skeleton/index.js';
+  import { notify } from '$lib/utils/toast';
+
+
+  import { navigating } from '$app/stores';
+
+  import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from '$lib/components/ui/table/index.js';
+
 
   type Project = {
     id: string;
@@ -70,7 +75,7 @@
     token: string | null;
   };
 
-  let { data }: { data: PageData } = $props();
+  const { data }: { data: PageData } = $props();
 
   // State
   let searchQuery = $state('');
@@ -132,10 +137,10 @@
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diffInSeconds < 60) return 'just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    if (diffInSeconds < 60) {return 'just now';}
+    if (diffInSeconds < 3600) {return `${Math.floor(diffInSeconds / 60)}m ago`;}
+    if (diffInSeconds < 86400) {return `${Math.floor(diffInSeconds / 3600)}h ago`;}
+    if (diffInSeconds < 604800) {return `${Math.floor(diffInSeconds / 86400)}d ago`;}
     return date.toLocaleDateString();
   }
 
@@ -148,7 +153,7 @@
   }
 
   function truncateText(text: string, maxLength: number): string {
-    if (text.length <= maxLength) return text;
+    if (text.length <= maxLength) {return text;}
     return text.slice(0, maxLength).trim() + '...';
   }
 
@@ -158,11 +163,11 @@
 
   function getPlatformIcon(platform: string) {
     const normalized = platform.toLowerCase();
-    if (normalized.includes('web') || normalized.includes('page')) return Globe;
+    if (normalized.includes('web') || normalized.includes('page')) {return Globe;}
     if (normalized.includes('ios') || normalized.includes('android') || normalized.includes('mobile'))
-      return Smartphone;
+      {return Smartphone;}
     if (normalized.includes('api') || normalized.includes('worker') || normalized.includes('backend'))
-      return Server;
+      {return Server;}
     return Globe;
   }
 
@@ -172,7 +177,7 @@
   }
 
   async function handleDelete() {
-    if (!projectToDelete || !data.token) return;
+    if (!projectToDelete || !data.token) {return;}
 
     const projectName = projectToDelete.name;
     isDeleting = true;

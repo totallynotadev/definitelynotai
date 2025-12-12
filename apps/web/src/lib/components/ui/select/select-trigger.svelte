@@ -1,7 +1,9 @@
 <script lang="ts">
   import { Select as SelectPrimitive } from 'bits-ui';
-  import { cn } from '$lib/utils.js';
   import { ChevronDown } from 'lucide-svelte';
+
+  import { cn } from '$lib/utils.js';
+
   import type { Snippet } from 'svelte';
 
   type Props = {
@@ -10,7 +12,7 @@
     children?: Snippet;
   };
 
-  let { class: className, disabled, children }: Props = $props();
+  const { class: className, disabled, children }: Props = $props();
 </script>
 
 <SelectPrimitive.Trigger

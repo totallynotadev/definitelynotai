@@ -1,13 +1,4 @@
 <script lang="ts">
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Card, CardContent } from '$lib/components/ui/card/index.js';
-  import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-  } from '$lib/components/ui/dialog/index.js';
   import {
     Globe,
     Smartphone,
@@ -22,6 +13,16 @@
     FileText,
     Settings2,
   } from 'lucide-svelte';
+
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Card, CardContent } from '$lib/components/ui/card/index.js';
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+  } from '$lib/components/ui/dialog/index.js';
 
   type Deployment = {
     id: string;
@@ -39,15 +40,15 @@
     }>;
   };
 
-  type Props = {
+  interface Props {
     deployments: Deployment[];
     platforms: string[];
     projectId: string;
     onDeploy?: (platform: string) => Promise<void>;
     onRedeploy?: (deploymentId: string) => Promise<void>;
-  };
+  }
 
-  let { deployments, platforms, projectId, onDeploy, onRedeploy }: Props = $props();
+  const { deployments, platforms, projectId: _projectId, onDeploy, onRedeploy }: Props = $props();
 
   // State
   let deployingPlatforms = $state<Set<string>>(new Set());
@@ -179,10 +180,10 @@
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    if (diffInSeconds < 60) {return 'Just now';}
+    if (diffInSeconds < 3600) {return `${Math.floor(diffInSeconds / 60)} min ago`;}
+    if (diffInSeconds < 86400) {return `${Math.floor(diffInSeconds / 3600)} hours ago`;}
+    if (diffInSeconds < 604800) {return `${Math.floor(diffInSeconds / 86400)} days ago`;}
     return date.toLocaleDateString();
   }
 
@@ -211,7 +212,7 @@
   }
 
   async function handleDeploy(platform: string) {
-    if (!onDeploy || isDeploying(platform)) return;
+    if (!onDeploy || isDeploying(platform)) {return;}
 
     const newSet = new Set(deployingPlatforms);
     newSet.add(platform);
@@ -227,7 +228,7 @@
   }
 
   async function handleRedeploy(deployment: Deployment) {
-    if (!onRedeploy || isDeploying(deployment.platform)) return;
+    if (!onRedeploy || isDeploying(deployment.platform)) {return;}
 
     const newSet = new Set(deployingPlatforms);
     newSet.add(deployment.platform);

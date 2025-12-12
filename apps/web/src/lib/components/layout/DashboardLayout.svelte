@@ -1,7 +1,9 @@
 <script lang="ts">
-  import Sidebar from './Sidebar.svelte';
-  import Header from './Header.svelte';
   import { cn } from '$lib/utils.js';
+
+  import Header from './Header.svelte';
+  import Sidebar from './Sidebar.svelte';
+
   import type { Snippet } from 'svelte';
 
   type Props = {
@@ -9,7 +11,7 @@
     children: Snippet;
   };
 
-  let { title = 'Dashboard', children }: Props = $props();
+  const { title = 'Dashboard', children }: Props = $props();
 
   let sidebarCollapsed = $state(false);
 </script>

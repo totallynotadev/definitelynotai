@@ -1,13 +1,15 @@
 <script lang="ts">
-  import { cn } from '$lib/utils.js';
   import { X } from 'lucide-svelte';
+
+  import { cn } from '$lib/utils.js';
+
   import type { HTMLButtonAttributes } from 'svelte/elements';
 
   type Props = HTMLButtonAttributes & {
     class?: string;
   };
 
-  let { class: className, ...restProps }: Props = $props();
+  const { class: className, ...restProps }: Props = $props();
 </script>
 
 <button

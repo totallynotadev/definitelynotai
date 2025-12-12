@@ -1,8 +1,11 @@
 <script lang="ts">
   import { Dialog as DialogPrimitive } from 'bits-ui';
+
   import { cn } from '$lib/utils.js';
+
   import DialogOverlay from './dialog-overlay.svelte';
   import DialogPortal from './dialog-portal.svelte';
+
   import type { Snippet } from 'svelte';
 
   type Props = {
@@ -10,7 +13,7 @@
     children?: Snippet;
   };
 
-  let { class: className, children }: Props = $props();
+  const { class: className, children }: Props = $props();
 </script>
 
 <DialogPortal>

@@ -1,7 +1,9 @@
 <script lang="ts">
   import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui';
-  import { cn } from '$lib/utils.js';
   import { ChevronRight } from 'lucide-svelte';
+
+  import { cn } from '$lib/utils.js';
+
   import type { Snippet } from 'svelte';
 
   type Props = {
@@ -11,7 +13,7 @@
     children?: Snippet;
   };
 
-  let { class: className, inset, disabled = false, children }: Props = $props();
+  const { class: className, inset, disabled = false, children }: Props = $props();
 </script>
 
 <DropdownMenuPrimitive.SubTrigger

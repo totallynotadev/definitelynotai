@@ -1,14 +1,15 @@
 <script lang="ts">
   import { cn } from '$lib/utils.js';
-  import type { HTMLThAttributes } from 'svelte/elements';
+
   import type { Snippet } from 'svelte';
+  import type { HTMLThAttributes } from 'svelte/elements';
 
   type Props = HTMLThAttributes & {
     class?: string;
     children?: Snippet;
   };
 
-  let { class: className, children, ...restProps }: Props = $props();
+  const { class: className, children, ...restProps }: Props = $props();
 </script>
 
 <th

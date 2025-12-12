@@ -1,6 +1,7 @@
-import { error, redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
 import { getDb, projects, users, deployments, agentLogs, eq, desc, and } from '@definitelynotai/db';
+import { error, redirect } from '@sveltejs/kit';
+
+import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
   const auth = locals.auth();

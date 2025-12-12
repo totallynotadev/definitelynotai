@@ -1,5 +1,6 @@
 <script lang="ts">
   import { cn } from '$lib/utils.js';
+
   import type { Snippet } from 'svelte';
 
   type Props = {
@@ -7,7 +8,7 @@
     children?: Snippet;
   };
 
-  let { class: className, children }: Props = $props();
+  const { class: className, children }: Props = $props();
 </script>
 
 <caption class={cn('mt-4 text-sm text-muted-foreground', className)}>

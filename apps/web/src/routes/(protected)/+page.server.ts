@@ -1,6 +1,7 @@
-import { redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
 import { getDb, projects, users, eq, desc, sql, and } from '@definitelynotai/db';
+import { redirect } from '@sveltejs/kit';
+
+import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const auth = locals.auth();
@@ -13,7 +14,7 @@ export const load: PageServerLoad = async ({ locals }) => {
   const db = getDb();
 
   // Get or create user in our database
-  let user = await db.query.users.findFirst({
+  const user = await db.query.users.findFirst({
     where: eq(users.clerkId, auth.userId),
   });
 

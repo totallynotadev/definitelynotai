@@ -1,18 +1,21 @@
 <script lang="ts">
   import { AlertDialog as AlertDialogPrimitive } from 'bits-ui';
+
   import { buttonVariants } from '$lib/components/ui/button/index.js';
   import { cn } from '$lib/utils.js';
-  import type { Snippet } from 'svelte';
 
-  type Props = {
+  import type { Snippet } from 'svelte';
+  import type { HTMLButtonAttributes } from 'svelte/elements';
+
+  type Props = HTMLButtonAttributes & {
     class?: string;
     children?: Snippet;
   };
 
-  let { class: className, children }: Props = $props();
+  const { class: className, children, ...restProps }: Props = $props();
 </script>
 
-<AlertDialogPrimitive.Action class={cn(buttonVariants(), className)}>
+<AlertDialogPrimitive.Action class={cn(buttonVariants(), className)} {...restProps}>
   {#if children}
     {@render children()}
   {/if}

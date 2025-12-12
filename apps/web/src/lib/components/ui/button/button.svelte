@@ -1,8 +1,10 @@
 <script lang="ts">
   import { cn } from '$lib/utils.js';
+
   import { buttonVariants, type Props } from './index.js';
-  import type { HTMLButtonAttributes } from 'svelte/elements';
+
   import type { Snippet } from 'svelte';
+  import type { HTMLButtonAttributes } from 'svelte/elements';
 
   type ButtonProps = HTMLButtonAttributes &
     Props & {
@@ -10,7 +12,7 @@
       class?: string;
     };
 
-  let {
+  const {
     class: className,
     variant = 'default',
     size = 'default',

@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { page } from '$app/stores';
   import { Home, FolderKanban, Settings, PanelLeftClose, PanelLeft } from 'lucide-svelte';
+
   import { cn } from '$lib/utils.js';
+
+  import { page } from '$app/stores';
 
   type Props = {
     collapsed?: boolean;

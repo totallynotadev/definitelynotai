@@ -1,8 +1,10 @@
 <script lang="ts">
-  import { cn } from '$lib/utils.js';
-  import type { HTMLAttributes } from 'svelte/elements';
-  import type { Snippet } from 'svelte';
   import { tv, type VariantProps } from 'tailwind-variants';
+
+  import { cn } from '$lib/utils.js';
+
+  import type { Snippet } from 'svelte';
+  import type { HTMLAttributes } from 'svelte/elements';
 
   const toastVariants = tv({
     base: 'group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all',
@@ -26,7 +28,7 @@
     children?: Snippet;
   };
 
-  let { class: className, variant = 'default', children, ...restProps }: Props = $props();
+  const { class: className, variant = 'default', children, ...restProps }: Props = $props();
 </script>
 
 <div class={cn(toastVariants({ variant }), className)} {...restProps}>

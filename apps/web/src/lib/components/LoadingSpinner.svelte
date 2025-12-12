@@ -8,7 +8,7 @@
     class?: string;
   }
 
-  let { size = 'md', color = 'purple', class: className = '' }: Props = $props();
+  const { size = 'md', color = 'purple', class: className = '' }: Props = $props();
 
   const sizeClasses: Record<Size, string> = {
     sm: 'h-4 w-4',

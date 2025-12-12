@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Tabs as TabsPrimitive } from 'bits-ui';
+
   import { cn } from '$lib/utils.js';
+
   import type { Snippet } from 'svelte';
 
   type Props = {
@@ -9,7 +11,7 @@
     children?: Snippet;
   };
 
-  let { class: className, value, children }: Props = $props();
+  const { class: className, value, children }: Props = $props();
 </script>
 
 <TabsPrimitive.Content

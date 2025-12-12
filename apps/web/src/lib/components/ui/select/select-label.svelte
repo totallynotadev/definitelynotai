@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Select as SelectPrimitive } from 'bits-ui';
+
   import { cn } from '$lib/utils.js';
+
   import type { Snippet } from 'svelte';
 
   type Props = {
@@ -8,7 +10,7 @@
     children?: Snippet;
   };
 
-  let { class: className, children }: Props = $props();
+  const { class: className, children }: Props = $props();
 </script>
 
 <SelectPrimitive.Label class={cn('py-1.5 pl-8 pr-2 text-sm font-semibold', className)}>

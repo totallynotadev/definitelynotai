@@ -1,32 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { notify } from '$lib/utils/toast';
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Input } from '$lib/components/ui/input/index.js';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
-  import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs/index.js';
-  import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-  } from '$lib/components/ui/dialog/index.js';
-  import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-  } from '$lib/components/ui/alert-dialog/index.js';
-  import { Textarea } from '$lib/components/ui/textarea/index.js';
-  import { ProjectDetailSkeleton } from '$lib/components/skeletons/index.js';
-  import { fade } from 'svelte/transition';
-  import { navigating } from '$app/stores';
   import {
     ArrowLeft,
     Play,
@@ -46,7 +18,39 @@
     Code,
     Rocket,
   } from 'lucide-svelte';
+  import { fade } from 'svelte/transition';
+
   import { AgentLogsTab, DeploymentsTab } from '$lib/components/projects/index.js';
+  import { ProjectDetailSkeleton } from '$lib/components/skeletons/index.js';
+  import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+  } from '$lib/components/ui/alert-dialog/index.js';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Input } from '$lib/components/ui/input/index.js';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
+  import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs/index.js';
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+  } from '$lib/components/ui/dialog/index.js';
+  import { Textarea } from '$lib/components/ui/textarea/index.js';
+  import { notify } from '$lib/utils/toast';
+
+  import { goto } from '$app/navigation';
+  import { navigating } from '$app/stores';
+
+
 
   type Project = {
     id: string;
@@ -85,7 +89,7 @@
     token: string | null;
   };
 
-  let { data }: { data: PageData } = $props();
+  const { data }: { data: PageData } = $props();
 
   // State
   let editNameMode = $state(false);
@@ -147,10 +151,10 @@
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diffInSeconds < 60) return 'just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    if (diffInSeconds < 60) {return 'just now';}
+    if (diffInSeconds < 3600) {return `${Math.floor(diffInSeconds / 60)}m ago`;}
+    if (diffInSeconds < 86400) {return `${Math.floor(diffInSeconds / 3600)}h ago`;}
+    if (diffInSeconds < 604800) {return `${Math.floor(diffInSeconds / 86400)}d ago`;}
     return date.toLocaleDateString();
   }
 
@@ -165,11 +169,11 @@
 
   function getPlatformIcon(platform: string) {
     const normalized = platform.toLowerCase();
-    if (normalized.includes('web') || normalized.includes('page')) return Globe;
+    if (normalized.includes('web') || normalized.includes('page')) {return Globe;}
     if (normalized.includes('ios') || normalized.includes('android') || normalized.includes('mobile'))
-      return Smartphone;
+      {return Smartphone;}
     if (normalized.includes('api') || normalized.includes('worker') || normalized.includes('backend'))
-      return Server;
+      {return Server;}
     return Globe;
   }
 
@@ -304,8 +308,8 @@
             bind:value={editedName}
             class="h-10 border-gray-700 bg-gray-900 text-2xl font-bold text-white"
             onkeydown={(e: KeyboardEvent) => {
-              if (e.key === 'Enter') handleSaveName();
-              if (e.key === 'Escape') handleCancelEditName();
+              if (e.key === 'Enter') {handleSaveName();}
+              if (e.key === 'Escape') {handleCancelEditName();}
             }}
           />
           <Button size="sm" onclick={handleSaveName} class="bg-purple-600 hover:bg-purple-700">

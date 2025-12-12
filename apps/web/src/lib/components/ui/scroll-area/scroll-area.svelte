@@ -1,7 +1,10 @@
 <script lang="ts">
   import { ScrollArea as ScrollAreaPrimitive } from 'bits-ui';
+
   import { cn } from '$lib/utils.js';
+
   import Scrollbar from './scroll-area-scrollbar.svelte';
+
   import type { Snippet } from 'svelte';
 
   type Props = {
@@ -10,7 +13,7 @@
     children?: Snippet;
   };
 
-  let { class: className, orientation = 'vertical', children }: Props = $props();
+  const { class: className, orientation = 'vertical', children }: Props = $props();
 </script>
 
 <ScrollAreaPrimitive.Root class={cn('relative overflow-hidden', className)}>

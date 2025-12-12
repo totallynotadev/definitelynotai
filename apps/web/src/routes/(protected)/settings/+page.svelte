@@ -1,21 +1,4 @@
 <script lang="ts">
-  import { browser } from '$app/environment';
-  import { notify } from '$lib/utils/toast';
-  import { Button } from '$lib/components/ui/button/index.js';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
-  import { Input } from '$lib/components/ui/input/index.js';
-  import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-  } from '$lib/components/ui/alert-dialog/index.js';
-  import { UserButton } from 'svelte-clerk';
-  import { fade } from 'svelte/transition';
   import {
     User,
     Mail,
@@ -37,7 +20,28 @@
     Check,
     Loader2,
   } from 'lucide-svelte';
+  import { fade } from 'svelte/transition';
+  import { UserButton } from 'svelte-clerk';
+
+  import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+  } from '$lib/components/ui/alert-dialog/index.js';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
+  import { Input } from '$lib/components/ui/input/index.js';
+  import { notify } from '$lib/utils/toast';
+
+
   import type { PageData } from './$types';
+
+  import { browser } from '$app/environment';
 
   interface Props {
     data: PageData;
@@ -64,7 +68,7 @@
   });
 
   // API Keys state
-  let apiKeys = $state({
+  const apiKeys = $state({
     anthropic: '',
     openai: '',
   });
@@ -189,9 +193,9 @@
     }, 2000);
   }
 
-  function maskApiKey(key: string): string {
-    if (!key) return '';
-    if (key.length <= 8) return '•'.repeat(key.length);
+  function _maskApiKey(key: string): string {
+    if (!key) {return '';}
+    if (key.length <= 8) {return '•'.repeat(key.length);}
     return key.slice(0, 4) + '•'.repeat(key.length - 8) + key.slice(-4);
   }
 
@@ -220,9 +224,10 @@
     }
   }
 
-  function openClerkProfile() {
+  function _openClerkProfile() {
     // The UserButton component handles this, but we can also use Clerk's openUserProfile
     // For now, we'll just show a message
+    // eslint-disable-next-line no-console
     console.log('Open Clerk profile');
   }
 </script>
@@ -379,6 +384,7 @@
                 : 'bg-gray-700'}"
               role="switch"
               aria-checked={notifications.buildComplete}
+              aria-label="Toggle build complete notifications"
             >
               <span
                 class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {notifications.buildComplete
@@ -404,6 +410,7 @@
                 : 'bg-gray-700'}"
               role="switch"
               aria-checked={notifications.buildFailure}
+              aria-label="Toggle build failure notifications"
             >
               <span
                 class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {notifications.buildFailure

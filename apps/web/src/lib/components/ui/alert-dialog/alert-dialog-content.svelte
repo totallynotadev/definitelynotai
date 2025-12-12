@@ -1,8 +1,11 @@
 <script lang="ts">
   import { AlertDialog as AlertDialogPrimitive } from 'bits-ui';
+
   import { cn } from '$lib/utils.js';
+
   import AlertDialogOverlay from './alert-dialog-overlay.svelte';
   import AlertDialogPortal from './alert-dialog-portal.svelte';
+
   import type { Snippet } from 'svelte';
 
   type Props = {
@@ -10,7 +13,7 @@
     children?: Snippet;
   };
 
-  let { class: className, children }: Props = $props();
+  const { class: className, children }: Props = $props();
 </script>
 
 <AlertDialogPortal>
