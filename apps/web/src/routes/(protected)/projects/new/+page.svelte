@@ -4,6 +4,7 @@
   import { notify } from '$lib/utils/toast';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Card, CardContent } from '$lib/components/ui/card/index.js';
+  import { fade } from 'svelte/transition';
   import {
     ArrowLeft,
     ArrowRight,
@@ -258,7 +259,7 @@
   <title>New Project | Definitely Not AI</title>
 </svelte:head>
 
-<div class="min-h-[calc(100vh-8rem)]">
+<div class="min-h-[calc(100vh-8rem)]" in:fade={{ duration: 200 }}>
   <!-- Header -->
   <div class="mb-8">
     <a

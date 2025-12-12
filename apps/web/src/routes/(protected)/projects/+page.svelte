@@ -4,6 +4,9 @@
   import { Input } from '$lib/components/ui/input/index.js';
   import { Card, CardContent } from '$lib/components/ui/card/index.js';
   import { Skeleton } from '$lib/components/ui/skeleton/index.js';
+  import { ProjectCardSkeleton } from '$lib/components/skeletons/index.js';
+  import { fade } from 'svelte/transition';
+  import { navigating } from '$app/stores';
   import {
     Select,
     SelectContent,
@@ -193,6 +196,7 @@
 
   const hasProjects = $derived(data.projects.length > 0);
   const hasFilteredProjects = $derived(filteredProjects().length > 0);
+  const isNavigating = $derived($navigating !== null);
 </script>
 
 <svelte:head>
@@ -270,52 +274,54 @@
       {#if viewMode === 'grid'}
         <!-- Grid View -->
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {#each filteredProjects() as project}
-            <a href={`/projects/${project.id}`} class="group block">
-              <Card
-                class="h-full border-gray-800 bg-gray-900 transition-all duration-200 group-hover:border-purple-500/50 group-hover:shadow-lg group-hover:shadow-purple-500/5"
-              >
-                <CardContent class="flex h-full flex-col p-5">
-                  <!-- Header with name and status -->
-                  <div class="mb-3 flex items-start justify-between gap-3">
-                    <h3 class="text-lg font-semibold text-white">{project.name}</h3>
-                    <span
-                      class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium {getStatusColor(
-                        project.status
-                      ).bg} {getStatusColor(project.status).text}"
-                    >
-                      {capitalizeStatus(project.status)}
-                    </span>
-                  </div>
-
-                  <!-- Prompt excerpt -->
-                  <p class="mb-4 flex-1 text-sm leading-relaxed text-gray-400 line-clamp-2">
-                    {truncateText(project.description || project.prompt, 120)}
-                  </p>
-
-                  <!-- Platforms -->
-                  {#if project.platforms && project.platforms.length > 0}
-                    <div class="mb-4 flex gap-2">
-                      {#each project.platforms as platform}
-                        {@const Icon = getPlatformIcon(platform)}
-                        <div
-                          class="flex h-8 w-8 items-center justify-center rounded-md bg-gray-800"
-                          title={platform}
-                        >
-                          <Icon class="h-4 w-4 text-gray-400" />
-                        </div>
-                      {/each}
+          {#each filteredProjects() as project, i (project.id)}
+            <div in:fade={{ duration: 200, delay: i * 50 }}>
+              <a href={`/projects/${project.id}`} class="group block h-full">
+                <Card
+                  class="h-full border-gray-800 bg-gray-900 transition-all duration-200 group-hover:border-purple-500/50 group-hover:shadow-lg group-hover:shadow-purple-500/5"
+                >
+                  <CardContent class="flex h-full flex-col p-5">
+                    <!-- Header with name and status -->
+                    <div class="mb-3 flex items-start justify-between gap-3">
+                      <h3 class="text-lg font-semibold text-white">{project.name}</h3>
+                      <span
+                        class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium {getStatusColor(
+                          project.status
+                        ).bg} {getStatusColor(project.status).text}"
+                      >
+                        {capitalizeStatus(project.status)}
+                      </span>
                     </div>
-                  {/if}
 
-                  <!-- Footer -->
-                  <div class="flex items-center justify-between border-t border-gray-800 pt-3 text-xs text-gray-500">
-                    <span>Created {formatTimeAgo(project.createdAt)}</span>
-                    <span>Updated {formatTimeAgo(project.updatedAt)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </a>
+                    <!-- Prompt excerpt -->
+                    <p class="mb-4 flex-1 text-sm leading-relaxed text-gray-400 line-clamp-2">
+                      {truncateText(project.description || project.prompt, 120)}
+                    </p>
+
+                    <!-- Platforms -->
+                    {#if project.platforms && project.platforms.length > 0}
+                      <div class="mb-4 flex gap-2">
+                        {#each project.platforms as platform}
+                          {@const Icon = getPlatformIcon(platform)}
+                          <div
+                            class="flex h-8 w-8 items-center justify-center rounded-md bg-gray-800"
+                            title={platform}
+                          >
+                            <Icon class="h-4 w-4 text-gray-400" />
+                          </div>
+                        {/each}
+                      </div>
+                    {/if}
+
+                    <!-- Footer -->
+                    <div class="flex items-center justify-between border-t border-gray-800 pt-3 text-xs text-gray-500">
+                      <span>Created {formatTimeAgo(project.createdAt)}</span>
+                      <span>Updated {formatTimeAgo(project.updatedAt)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </a>
+            </div>
           {/each}
         </div>
       {:else}

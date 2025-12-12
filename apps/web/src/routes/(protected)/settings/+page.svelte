@@ -15,6 +15,7 @@
     AlertDialogTitle,
   } from '$lib/components/ui/alert-dialog/index.js';
   import { UserButton } from 'svelte-clerk';
+  import { fade } from 'svelte/transition';
   import {
     User,
     Mail,
@@ -230,7 +231,7 @@
   <title>Settings | Definitely Not AI</title>
 </svelte:head>
 
-<div class="mx-auto max-w-2xl space-y-8">
+<div class="mx-auto max-w-2xl space-y-8" in:fade={{ duration: 200 }}>
   <div>
     <p class="text-gray-400">
       Configure your Definitely Not AI workspace and preferences.

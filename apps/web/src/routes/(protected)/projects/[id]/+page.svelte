@@ -24,6 +24,9 @@
     AlertDialogTitle,
   } from '$lib/components/ui/alert-dialog/index.js';
   import { Textarea } from '$lib/components/ui/textarea/index.js';
+  import { ProjectDetailSkeleton } from '$lib/components/skeletons/index.js';
+  import { fade } from 'svelte/transition';
+  import { navigating } from '$app/stores';
   import {
     ArrowLeft,
     Play,
@@ -115,6 +118,9 @@
 
   // State for agent logs
   let agentLogs = $state(data.agentLogs);
+
+  // Navigation state
+  const isNavigating = $derived($navigating !== null);
 
   function getStatusColor(status: string) {
     return statusColors[status] || statusColors.draft;
@@ -277,7 +283,7 @@
   <title>{data.project.name} | Definitely Not AI</title>
 </svelte:head>
 
-<div class="space-y-6">
+<div class="space-y-6" in:fade={{ duration: 200 }}>
   <!-- Back Button -->
   <a
     href="/projects"

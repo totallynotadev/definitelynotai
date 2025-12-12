@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Card, CardContent } from '$lib/components/ui/card/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
+  import { StatsCardSkeleton, RecentProjectSkeleton } from '$lib/components/skeletons/index.js';
+  import { fade } from 'svelte/transition';
   import {
     FolderKanban,
     Loader2,
@@ -11,6 +13,7 @@
     ArrowRight,
     Rocket,
   } from 'lucide-svelte';
+  import { navigating } from '$app/stores';
 
   type PageData = {
     user: {
@@ -123,6 +126,7 @@
   }
 
   const hasProjects = $derived(data.stats.total > 0);
+  const isNavigating = $derived($navigating !== null);
 </script>
 
 <svelte:head>
@@ -139,22 +143,24 @@
 
   <!-- Stats Cards -->
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    {#each statsCards as stat}
-      <Card
-        class="border-gray-800 bg-gray-900 transition-all duration-200 hover:border-gray-700 hover:bg-gray-900/80"
-      >
-        <CardContent class="p-6">
-          <div class="flex items-center gap-4">
-            <div class={`flex h-12 w-12 items-center justify-center rounded-lg ${stat.iconBg}`}>
-              <stat.icon class={`h-6 w-6 ${stat.iconColor} ${stat.spin ? 'animate-spin' : ''}`} />
+    {#each statsCards as stat (stat.label)}
+      <div in:fade={{ duration: 200, delay: 50 }}>
+        <Card
+          class="border-gray-800 bg-gray-900 transition-all duration-200 hover:border-gray-700 hover:bg-gray-900/80"
+        >
+          <CardContent class="p-6">
+            <div class="flex items-center gap-4">
+              <div class={`flex h-12 w-12 items-center justify-center rounded-lg ${stat.iconBg}`}>
+                <stat.icon class={`h-6 w-6 ${stat.iconColor} ${stat.spin ? 'animate-spin' : ''}`} />
+              </div>
+              <div>
+                <p class="text-3xl font-bold text-white">{stat.value}</p>
+                <p class="text-sm text-gray-400">{stat.label}</p>
+              </div>
             </div>
-            <div>
-              <p class="text-3xl font-bold text-white">{stat.value}</p>
-              <p class="text-sm text-gray-400">{stat.label}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     {/each}
   </div>
 
@@ -173,33 +179,35 @@
       </div>
 
       <div class="grid gap-4">
-        {#each data.recentProjects as project}
-          <a href={`/projects/${project.id}`} class="block">
-            <Card
-              class="border-gray-800 bg-gray-900 transition-all duration-200 hover:border-gray-700 hover:bg-gray-900/80"
-            >
-              <CardContent class="p-4">
-                <div class="flex items-start justify-between gap-4">
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-3">
-                      <h3 class="font-semibold text-white">{project.name}</h3>
-                      <span
-                        class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(project.status).bg} ${getStatusColor(project.status).text}`}
-                      >
-                        {capitalizeStatus(project.status)}
-                      </span>
+        {#each data.recentProjects as project, i (project.id)}
+          <div in:fade={{ duration: 200, delay: 100 + i * 50 }}>
+            <a href={`/projects/${project.id}`} class="block">
+              <Card
+                class="border-gray-800 bg-gray-900 transition-all duration-200 hover:border-gray-700 hover:bg-gray-900/80"
+              >
+                <CardContent class="p-4">
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-3">
+                        <h3 class="font-semibold text-white">{project.name}</h3>
+                        <span
+                          class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(project.status).bg} ${getStatusColor(project.status).text}`}
+                        >
+                          {capitalizeStatus(project.status)}
+                        </span>
+                      </div>
+                      <p class="mt-1 text-sm text-gray-400">
+                        {truncatePrompt(project.prompt)}
+                      </p>
                     </div>
-                    <p class="mt-1 text-sm text-gray-400">
-                      {truncatePrompt(project.prompt)}
-                    </p>
+                    <span class="shrink-0 text-xs text-gray-500">
+                      {formatTimeAgo(project.updatedAt)}
+                    </span>
                   </div>
-                  <span class="shrink-0 text-xs text-gray-500">
-                    {formatTimeAgo(project.updatedAt)}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </a>
+                </CardContent>
+              </Card>
+            </a>
+          </div>
         {/each}
       </div>
     </div>
