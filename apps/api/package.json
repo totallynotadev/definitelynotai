@@ -17,6 +17,7 @@
     "@clerk/backend": "^2.27.0",
     "@definitelynotai/agents": "workspace:*",
     "@definitelynotai/db": "workspace:*",
+    "@definitelynotai/sandbox": "workspace:*",
     "@definitelynotai/shared": "workspace:*",
     "@hono/zod-validator": "^0.7.5",
     "hono": "^4.6.14",

@@ -1,5 +1,6 @@
 import { StateGraph, Annotation, END, START } from '@langchain/langgraph';
 import { z } from 'zod';
+import { SandboxManager, CodeValidator } from '@definitelynotai/sandbox';
 import { AGENT_REGISTRY } from '../agents/registry';
 import { ModelRouter } from '../router/model-router';
 
@@ -331,91 +332,64 @@ Include: schema.ts, routes.ts, and handlers.ts`,
 
   /**
    * Validating Node
-   * Uses the QA agent to review generated code for quality and security
+   * Uses E2B sandbox to validate generated code with real compilation and tests
    */
   async function validatingNode(
     state: BuildAppAnnotationState
   ): Promise<Partial<BuildAppAnnotationState>> {
-    const agent = AGENT_REGISTRY.qa;
-    if (!agent) {
+    const e2bApiKey = process.env.E2B_API_KEY;
+    if (!e2bApiKey) {
       return {
         status: 'failed',
         errors: [
           {
-            agent: 'system',
-            message: 'QA agent not found in registry',
+            agent: 'qa',
+            message: 'E2B_API_KEY not configured',
             timestamp: new Date(),
           },
         ],
       };
     }
 
-    const codeToReview = Object.entries(state.generatedCode || {})
-      .map(([file, content]) => `// ${file}\n${content}`)
-      .join('\n\n---\n\n');
-
-    const response = await router.complete({
-      taskType: 'review',
-      systemPrompt: agent.systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: `Review this generated code for the app "${state.plan?.appName}":
-
-${codeToReview}
-
-Check for:
-1. Security issues (SQL injection, XSS, auth bypass)
-2. Performance problems (N+1 queries, memory leaks)
-3. Correctness (edge cases, error handling)
-4. Code quality (naming, structure, types)
-
-Respond with JSON:
-{
-  "approved": boolean,
-  "securityPass": boolean,
-  "issues": string[],
-  "suggestions": string[]
-}`,
-        },
-      ],
-    });
+    const manager = new SandboxManager(e2bApiKey);
+    const validator = new CodeValidator(manager);
 
     try {
-      const review = JSON.parse(response.content) as {
-        approved: boolean;
-        securityPass: boolean;
-        issues: string[];
-        suggestions: string[];
-      };
+      // Validate in sandbox
+      const result = await validator.fullValidate(state.projectId, state.generatedCode || {});
 
-      if (review.approved) {
+      // Cleanup sandbox
+      await validator.cleanup(state.projectId);
+
+      if (result.valid) {
         return {
           status: 'deploying',
           currentAgent: 'deploy',
           testsPass: true,
-          securityPass: review.securityPass,
+          securityPass: true,
           qaApproved: true,
           logs: [
             {
               agent: 'qa',
               step: 'validating',
-              message: `QA approved with ${review.issues.length} minor issues noted`,
-              model: response.model,
-              tokens: response.usage.inputTokens + response.usage.outputTokens,
+              message: `Validation passed with ${result.warnings.length} warnings`,
+              model: 'e2b-sandbox',
+              tokens: 0,
               timestamp: new Date(),
             },
           ],
         };
       } else {
+        // Validation failed - could retry with fixes
+        const errorMessages = result.errors.map((e) => e.message).join('; ');
+
         return {
           status: 'failed',
           qaApproved: false,
-          securityPass: review.securityPass,
           errors: [
             {
               agent: 'qa',
-              message: `QA rejected: ${review.issues.join(', ')}`,
+              message: `Validation failed: ${errorMessages}`,
               timestamp: new Date(),
             },
           ],
@@ -423,21 +397,23 @@ Respond with JSON:
             {
               agent: 'qa',
               step: 'validating',
-              message: `QA rejected code with ${review.issues.length} blocking issues`,
-              model: response.model,
-              tokens: response.usage.inputTokens + response.usage.outputTokens,
+              message: `Found ${result.errors.length} errors`,
+              model: 'e2b-sandbox',
+              tokens: 0,
               timestamp: new Date(),
             },
           ],
         };
       }
-    } catch (e) {
+    } catch (error) {
+      await manager.destroyAll(); // Cleanup on error
+
       return {
         status: 'failed',
         errors: [
           {
             agent: 'qa',
-            message: `Failed to parse review: ${e}`,
+            message: `Sandbox error: ${error instanceof Error ? error.message : String(error)}`,
             timestamp: new Date(),
           },
         ],

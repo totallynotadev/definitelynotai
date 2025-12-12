@@ -11,6 +11,7 @@ import { agents } from './routes/agents';
 import { deployments } from './routes/deployments';
 import { health } from './routes/health';
 import { projects } from './routes/projects';
+import { sandbox } from './routes/sandbox';
 import { clerk } from './routes/webhooks/clerk';
 
 import type { CloudflareBindings } from './lib/env';
@@ -68,6 +69,7 @@ v1.use('*', requireAuth);
 v1.route('/projects', projects);
 v1.route('/agents', agents);
 v1.route('/deployments', deployments);
+v1.route('/sandbox', sandbox);
 
 app.route('/api/v1', v1);
 
