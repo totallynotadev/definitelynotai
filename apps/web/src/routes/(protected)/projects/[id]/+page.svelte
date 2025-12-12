@@ -39,9 +39,9 @@
     XCircle,
     Loader2,
     Code,
-    FileText,
     Rocket,
   } from 'lucide-svelte';
+  import { AgentLogsTab } from '$lib/components/projects/index.js';
 
   type Project = {
     id: string;
@@ -111,16 +111,8 @@
     cancelled: { bg: 'bg-gray-600/20', text: 'text-gray-500' },
   };
 
-  const stepColors: Record<string, { bg: string; text: string }> = {
-    analyzing: { bg: 'bg-purple-500/20', text: 'text-purple-400' },
-    planning: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
-    generating: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
-    reviewing: { bg: 'bg-cyan-500/20', text: 'text-cyan-400' },
-    refining: { bg: 'bg-orange-500/20', text: 'text-orange-400' },
-    testing: { bg: 'bg-indigo-500/20', text: 'text-indigo-400' },
-    complete: { bg: 'bg-green-500/20', text: 'text-green-400' },
-    error: { bg: 'bg-red-500/20', text: 'text-red-400' },
-  };
+  // State for agent logs
+  let agentLogs = $state(data.agentLogs);
 
   function getStatusColor(status: string) {
     return statusColors[status] || statusColors.draft;
@@ -128,10 +120,6 @@
 
   function getDeploymentStatusColor(status: string) {
     return deploymentStatusColors[status] || deploymentStatusColors.queued;
-  }
-
-  function getStepColor(step: string) {
-    return stepColors[step] || stepColors.analyzing;
   }
 
   function capitalizeStatus(status: string): string {
@@ -238,6 +226,22 @@
   function handleExport() {
     // TODO: Export project data
     console.log('Export project:', data.project.id);
+  }
+
+  async function handleRefreshLogs() {
+    try {
+      const response = await fetch(`/api/projects/${data.project.id}/logs`, {
+        headers: {
+          Authorization: `Bearer ${data.token}`,
+        },
+      });
+      if (response.ok) {
+        const result = await response.json();
+        agentLogs = result.logs;
+      }
+    } catch (error) {
+      console.error('Failed to refresh logs:', error);
+    }
   }
 
   const isBuilding = $derived(
@@ -547,48 +551,12 @@
 
     <!-- Agent Logs Tab -->
     <TabsContent value="logs" class="mt-6">
-      <Card class="border-gray-800 bg-gray-900">
-        <CardHeader>
-          <CardTitle class="text-white">Agent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {#if data.agentLogs.length === 0}
-            <div class="flex flex-col items-center justify-center py-12 text-center">
-              <FileText class="mb-4 h-12 w-12 text-gray-600" />
-              <h3 class="text-lg font-medium text-white">No activity yet</h3>
-              <p class="mt-1 text-gray-400">Agent logs will appear here once you start a build.</p>
-            </div>
-          {:else}
-            <div class="space-y-3">
-              {#each data.agentLogs as log}
-                <div class="flex items-start gap-3 rounded-lg bg-gray-800/50 p-3">
-                  <div class="mt-0.5">
-                    {#if log.step === 'complete'}
-                      <CheckCircle2 class="h-5 w-5 text-green-400" />
-                    {:else if log.step === 'error'}
-                      <XCircle class="h-5 w-5 text-red-400" />
-                    {:else}
-                      <Clock class="h-5 w-5 text-gray-400" />
-                    {/if}
-                  </div>
-                  <div class="flex-1">
-                    <div class="flex items-center gap-2">
-                      <span
-                        class="rounded-full px-2 py-0.5 text-xs font-medium {getStepColor(log.step)
-                          .bg} {getStepColor(log.step).text}"
-                      >
-                        {capitalizeStatus(log.step)}
-                      </span>
-                      <span class="text-xs text-gray-500">{formatDateTime(log.createdAt)}</span>
-                    </div>
-                    <p class="mt-1 text-sm text-gray-300">{log.message}</p>
-                  </div>
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </CardContent>
-      </Card>
+      <AgentLogsTab
+        logs={agentLogs}
+        projectId={data.project.id}
+        projectStatus={data.project.status}
+        onRefresh={handleRefreshLogs}
+      />
     </TabsContent>
 
     <!-- Deployments Tab -->
