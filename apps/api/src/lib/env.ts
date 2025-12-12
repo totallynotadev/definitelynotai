@@ -16,9 +16,11 @@ export const envSchema = z.object({
   CLERK_SECRET_KEY: z.string().optional(),
   CLERK_WEBHOOK_SECRET: z.string().optional(),
 
-  // External services (optional for now)
-  OPENAI_API_KEY: z.string().startsWith('sk-').optional(),
+  // LLM API Keys (all optional, at least one required for agent features)
   ANTHROPIC_API_KEY: z.string().startsWith('sk-ant-').optional(),
+  OPENAI_API_KEY: z.string().startsWith('sk-').optional(),
+  GOOGLE_AI_API_KEY: z.string().optional(),
+  XAI_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -35,8 +37,10 @@ export interface CloudflareBindings {
   AUTH_PROVIDER_URL?: string;
   CLERK_SECRET_KEY?: string;
   CLERK_WEBHOOK_SECRET?: string;
-  OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
+  OPENAI_API_KEY?: string;
+  GOOGLE_AI_API_KEY?: string;
+  XAI_API_KEY?: string;
 
   // Cloudflare bindings (uncomment when configured)
   // DB: D1Database;
