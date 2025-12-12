@@ -21,6 +21,16 @@ export const envSchema = z.object({
   OPENAI_API_KEY: z.string().startsWith('sk-').optional(),
   GOOGLE_AI_API_KEY: z.string().optional(),
   XAI_API_KEY: z.string().optional(),
+
+  // Sandbox / Execution
+  E2B_API_KEY: z.string().optional(),
+  MODAL_TOKEN_ID: z.string().optional(),
+  MODAL_TOKEN_SECRET: z.string().optional(),
+
+  // Observability
+  LANGFUSE_PUBLIC_KEY: z.string().optional(),
+  LANGFUSE_SECRET_KEY: z.string().optional(),
+  LANGFUSE_HOST: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -41,6 +51,16 @@ export interface CloudflareBindings {
   OPENAI_API_KEY?: string;
   GOOGLE_AI_API_KEY?: string;
   XAI_API_KEY?: string;
+
+  // Sandbox / Execution
+  E2B_API_KEY?: string;
+  MODAL_TOKEN_ID?: string;
+  MODAL_TOKEN_SECRET?: string;
+
+  // Observability
+  LANGFUSE_PUBLIC_KEY?: string;
+  LANGFUSE_SECRET_KEY?: string;
+  LANGFUSE_HOST?: string;
 
   // Cloudflare bindings (uncomment when configured)
   // DB: D1Database;

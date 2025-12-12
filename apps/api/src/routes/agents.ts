@@ -45,12 +45,20 @@ const agents = new Hono<{
  * Create a ModelRouter from environment bindings
  */
 function createRouterFromEnv(env: CloudflareBindings): ModelRouter {
-  return new ModelRouter({
-    anthropicApiKey: env.ANTHROPIC_API_KEY,
-    openaiApiKey: env.OPENAI_API_KEY,
-    googleApiKey: env.GOOGLE_AI_API_KEY,
-    xaiApiKey: env.XAI_API_KEY,
-  });
+  // Build config explicitly to satisfy exactOptionalPropertyTypes
+  const config: {
+    anthropicKey: string;
+    openaiKey?: string;
+    googleKey?: string;
+    xaiKey?: string;
+  } = {
+    anthropicKey: env.ANTHROPIC_API_KEY ?? '',
+  };
+  if (env.OPENAI_API_KEY) config.openaiKey = env.OPENAI_API_KEY;
+  if (env.GOOGLE_AI_API_KEY) config.googleKey = env.GOOGLE_AI_API_KEY;
+  if (env.XAI_API_KEY) config.xaiKey = env.XAI_API_KEY;
+
+  return new ModelRouter(config);
 }
 
 /**
@@ -62,8 +70,8 @@ agents.get('/', (c) => {
     id,
     name: agent.name,
     description: agent.description,
-    model: agent.model,
-    riskLevel: agent.riskLevel,
+    model: agent.primaryModel,
+    riskLevel: agent.maxRiskLevel,
     permissions: agent.permissions,
   }));
 
@@ -338,7 +346,8 @@ agents.get('/council/config/:riskLevel', (c) => {
     );
   }
 
-  const router = new ModelRouter({});
+  // Create a minimal router just to get council config (won't make API calls)
+  const router = new ModelRouter({ anthropicKey: '' });
   const council = getCouncil(router);
   const config = council.getConfig(riskLevel);
 
