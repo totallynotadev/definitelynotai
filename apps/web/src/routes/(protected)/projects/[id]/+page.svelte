@@ -41,7 +41,7 @@
     Code,
     Rocket,
   } from 'lucide-svelte';
-  import { AgentLogsTab } from '$lib/components/projects/index.js';
+  import { AgentLogsTab, DeploymentsTab } from '$lib/components/projects/index.js';
 
   type Project = {
     id: string;
@@ -242,6 +242,16 @@
     } catch (error) {
       console.error('Failed to refresh logs:', error);
     }
+  }
+
+  async function handleDeploy(platform: string) {
+    // TODO: API call to deploy to platform
+    console.log('Deploy to platform:', platform, 'for project:', data.project.id);
+  }
+
+  async function handleRedeploy(deploymentId: string) {
+    // TODO: API call to redeploy
+    console.log('Redeploy deployment:', deploymentId);
   }
 
   const isBuilding = $derived(
@@ -561,86 +571,13 @@
 
     <!-- Deployments Tab -->
     <TabsContent value="deployments" class="mt-6">
-      <Card class="border-gray-800 bg-gray-900">
-        <CardHeader>
-          <CardTitle class="text-white">Deployment History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {#if data.deployments.length === 0}
-            <div class="flex flex-col items-center justify-center py-12 text-center">
-              <Globe class="mb-4 h-12 w-12 text-gray-600" />
-              <h3 class="text-lg font-medium text-white">No deployments yet</h3>
-              <p class="mt-1 text-gray-400">
-                Your deployments will appear here once you build and deploy your project.
-              </p>
-            </div>
-          {:else}
-            <div class="space-y-3">
-              {#each data.deployments as deployment}
-                <div
-                  class="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-800/30 p-4"
-                >
-                  <div class="flex items-center gap-4">
-                    <div
-                      class="flex h-10 w-10 items-center justify-center rounded-lg {getDeploymentStatusColor(
-                        deployment.status
-                      ).bg}"
-                    >
-                      {#if deployment.status === 'success'}
-                        <CheckCircle2
-                          class="h-5 w-5 {getDeploymentStatusColor(deployment.status).text}"
-                        />
-                      {:else if deployment.status === 'failed'}
-                        <XCircle
-                          class="h-5 w-5 {getDeploymentStatusColor(deployment.status).text}"
-                        />
-                      {:else if deployment.status === 'building' || deployment.status === 'deploying'}
-                        <Loader2
-                          class="h-5 w-5 animate-spin {getDeploymentStatusColor(deployment.status)
-                            .text}"
-                        />
-                      {:else}
-                        <Clock class="h-5 w-5 {getDeploymentStatusColor(deployment.status).text}" />
-                      {/if}
-                    </div>
-                    <div>
-                      <div class="flex items-center gap-2">
-                        <span class="font-medium text-white">
-                          {getPlatformLabel(deployment.platform)}
-                        </span>
-                        <span
-                          class="rounded-full px-2 py-0.5 text-xs font-medium {getDeploymentStatusColor(
-                            deployment.status
-                          ).bg} {getDeploymentStatusColor(deployment.status).text}"
-                        >
-                          {capitalizeStatus(deployment.status)}
-                        </span>
-                      </div>
-                      <div class="mt-1 flex items-center gap-3 text-sm text-gray-400">
-                        <span>{formatDateTime(deployment.createdAt)}</span>
-                        {#if deployment.duration}
-                          <span>• {deployment.duration}</span>
-                        {/if}
-                      </div>
-                    </div>
-                  </div>
-                  {#if deployment.url}
-                    <a
-                      href={deployment.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="flex items-center gap-1 text-sm text-purple-400 hover:text-purple-300"
-                    >
-                      View
-                      <ExternalLink class="h-3 w-3" />
-                    </a>
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </CardContent>
-      </Card>
+      <DeploymentsTab
+        deployments={data.deployments}
+        platforms={data.project.platforms}
+        projectId={data.project.id}
+        onDeploy={handleDeploy}
+        onRedeploy={handleRedeploy}
+      />
     </TabsContent>
 
     <!-- Code Tab (Placeholder) -->
