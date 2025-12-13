@@ -5,10 +5,10 @@ import Item from './select-item.svelte';
 import Label from './select-label.svelte';
 import Separator from './select-separator.svelte';
 import Trigger from './select-trigger.svelte';
+import Value from './select-value.svelte';
 
 const Root = SelectPrimitive.Root;
 const Group = SelectPrimitive.Group;
-const Value = SelectPrimitive.Value;
 
 export {
   Root,

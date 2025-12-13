@@ -14,10 +14,10 @@
   const { class: className, inset, children }: Props = $props();
 </script>
 
-<DropdownMenuPrimitive.Label
+<DropdownMenuPrimitive.GroupHeading
   class={cn('px-2 py-1.5 text-sm font-semibold', inset && 'pl-8', className)}
 >
   {#if children}
     {@render children()}
   {/if}
-</DropdownMenuPrimitive.Label>
+</DropdownMenuPrimitive.GroupHeading>

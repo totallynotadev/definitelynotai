@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { Select as SelectPrimitive } from 'bits-ui';
-
   import { cn } from '$lib/utils.js';
 
   type Props = {
@@ -10,4 +8,5 @@
   const { class: className }: Props = $props();
 </script>
 
-<SelectPrimitive.Separator class={cn('-mx-1 my-1 h-px bg-muted', className)} />
+<!-- Custom separator since bits-ui 2.x Select doesn't export Separator -->
+<div role="separator" class={cn('-mx-1 my-1 h-px bg-muted', className)} />
