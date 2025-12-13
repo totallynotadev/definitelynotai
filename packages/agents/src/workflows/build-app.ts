@@ -2,6 +2,7 @@ import { StateGraph, Annotation, END, START } from '@langchain/langgraph';
 import { z } from 'zod';
 import { SandboxManager, CodeValidator } from '@definitelynotai/sandbox';
 import { TemplateManager, type Platform } from '@definitelynotai/templates';
+import { DeploymentOrchestrator, type OrchestratorConfig } from '@definitelynotai/deploy';
 import { AGENT_REGISTRY } from '../agents/registry.js';
 import { ModelRouter } from '../router/model-router.js';
 
@@ -40,6 +41,10 @@ export const BuildAppStateSchema = z.object({
   testsPass: z.boolean().optional(),
   securityPass: z.boolean().optional(),
   qaApproved: z.boolean().optional(),
+
+  // Deployment
+  deployed: z.boolean().optional(),
+  deployedUrls: z.record(z.string()).optional(),
 
   // Errors
   errors: z.array(
@@ -135,6 +140,14 @@ const BuildAppAnnotation = Annotation.Root({
     reducer: (_, b) => b,
     default: () => undefined,
   }),
+  deployed: Annotation<boolean | undefined>({
+    reducer: (_, b) => b,
+    default: () => undefined,
+  }),
+  deployedUrls: Annotation<Record<string, string> | undefined>({
+    reducer: (_, b) => b,
+    default: () => undefined,
+  }),
   errors: Annotation<ErrorEntry[]>({
     reducer: (a, b) => [...(a || []), ...(b || [])],
     default: () => [],
@@ -166,6 +179,8 @@ export function createInitialState(
     testsPass: undefined,
     securityPass: undefined,
     qaApproved: undefined,
+    deployed: undefined,
+    deployedUrls: undefined,
     errors: [],
     logs: [],
   };
@@ -476,28 +491,110 @@ Respond with ONLY valid JSON.`,
 
   /**
    * Deploying Node
-   * Uses the Deploy agent to deploy the generated app
-   * In Phase 5, this will actually deploy to E2B/Modal
+   * Uses the DeploymentOrchestrator to deploy the generated app
    */
   async function deployingNode(
-    _state: BuildAppAnnotationState
+    state: BuildAppAnnotationState
   ): Promise<Partial<BuildAppAnnotationState>> {
-    // In Phase 5, this will actually deploy to E2B/Modal
-    // For now, simulate success
-    return {
-      status: 'complete',
-      currentAgent: undefined,
-      logs: [
-        {
-          agent: 'deploy',
-          step: 'deploying',
-          message: 'Deployment simulated (Phase 5 will implement real deployment)',
-          model: 'system',
-          tokens: 0,
-          timestamp: new Date(),
-        },
-      ],
+    const ghToken = process.env.GH_TOKEN;
+    const cfApiToken = process.env.CLOUDFLARE_API_TOKEN;
+    const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+
+    if (!ghToken || !cfApiToken || !cfAccountId) {
+      return {
+        status: 'failed',
+        errors: [
+          {
+            agent: 'deploy',
+            message: 'Missing required environment variables: GH_TOKEN, CLOUDFLARE_API_TOKEN, or CLOUDFLARE_ACCOUNT_ID',
+            timestamp: new Date(),
+          },
+        ],
+      };
+    }
+
+    const orchestratorConfig: OrchestratorConfig = {
+      github: {
+        token: ghToken,
+      },
+      cloudflare: {
+        apiToken: cfApiToken,
+        accountId: cfAccountId,
+      },
     };
+
+    if (process.env.EXPO_TOKEN) {
+      orchestratorConfig.eas = {
+        token: process.env.EXPO_TOKEN,
+      };
+    }
+
+    const orchestrator = new DeploymentOrchestrator(orchestratorConfig);
+
+    await orchestrator.init();
+
+    try {
+      const result = await orchestrator.deploy({
+        projectId: state.projectId,
+        projectName: state.plan?.appName || `app-${state.projectId}`,
+        files: state.generatedCode || {},
+        platforms: state.platforms as Array<'web' | 'api' | 'mobile'>,
+        secrets: {
+          DATABASE_URL: process.env.DATABASE_URL || '',
+        },
+        environment: 'preview',
+      });
+
+      // Collect deployment URLs
+      const deploymentUrls: Record<string, string> = {};
+      if (result.deployments) {
+        for (const deployment of result.deployments) {
+          if (deployment.success && deployment.url) {
+            deploymentUrls[deployment.platform] = deployment.url;
+          }
+        }
+      }
+
+      const successCount = result.deployments?.filter((d) => d.success).length || 0;
+
+      return {
+        status: 'complete',
+        currentAgent: undefined,
+        deployed: true,
+        deployedUrls: deploymentUrls,
+        logs: [
+          {
+            agent: 'deploy',
+            step: 'deploying',
+            message: `Deployed to ${successCount} platforms`,
+            model: 'deployment-orchestrator',
+            tokens: 0,
+            timestamp: new Date(),
+          },
+          ...(result.deployments?.map((d) => ({
+            agent: 'deploy',
+            step: 'deploying',
+            message: d.success
+              ? `${d.platform}: ${d.url}`
+              : `${d.platform}: Failed - ${d.error}`,
+            model: 'deployment-orchestrator',
+            tokens: 0,
+            timestamp: new Date(),
+          })) || []),
+        ],
+      };
+    } catch (error) {
+      return {
+        status: 'failed',
+        errors: [
+          {
+            agent: 'deploy',
+            message: `Deployment failed: ${error instanceof Error ? error.message : String(error)}`,
+            timestamp: new Date(),
+          },
+        ],
+      };
+    }
   }
 
   /**

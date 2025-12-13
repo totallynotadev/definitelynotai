@@ -17,6 +17,7 @@
     "@clerk/backend": "^2.27.0",
     "@definitelynotai/agents": "workspace:*",
     "@definitelynotai/db": "workspace:*",
+    "@definitelynotai/deploy": "workspace:*",
     "@definitelynotai/sandbox": "workspace:*",
     "@definitelynotai/shared": "workspace:*",
     "@definitelynotai/templates": "workspace:*",

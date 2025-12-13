@@ -8,6 +8,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { clerkAuth, requireAuth, type AuthVariables } from './middleware/auth';
 import { errorHandler } from './middleware/error-handler';
 import { agents } from './routes/agents';
+import { deploy } from './routes/deploy';
 import { deployments } from './routes/deployments';
 import { health } from './routes/health';
 import { projects } from './routes/projects';
@@ -69,6 +70,7 @@ const v1 = new Hono<{ Bindings: CloudflareBindings; Variables: AuthVariables }>(
 v1.use('*', requireAuth);
 v1.route('/projects', projects);
 v1.route('/agents', agents);
+v1.route('/deploy', deploy);
 v1.route('/deployments', deployments);
 v1.route('/sandbox', sandbox);
 v1.route('/templates', templates);
