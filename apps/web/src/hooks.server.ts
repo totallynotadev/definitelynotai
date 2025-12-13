@@ -1,49 +1,39 @@
 import { createClerkClient } from '@clerk/backend';
-import { CLERK_SECRET_KEY } from '$env/static/private';
-import { PUBLIC_CLERK_PUBLISHABLE_KEY } from '$env/static/public';
 import type { Handle } from '@sveltejs/kit';
-
-const clerkClient = createClerkClient({
-	secretKey: CLERK_SECRET_KEY,
-	publishableKey: PUBLIC_CLERK_PUBLISHABLE_KEY
-});
+import { env } from '$env/dynamic/private';
+import { env as publicEnv } from '$env/dynamic/public';
 
 /**
  * Custom Clerk authentication handler for SvelteKit
  * Uses @clerk/backend directly instead of svelte-clerk to avoid Svelte store issues
  */
 export const handle: Handle = async ({ event, resolve }) => {
-	const sessionToken = event.cookies.get('__session') || event.request.headers.get('Authorization')?.replace('Bearer ', '');
+	// Initialize Clerk client with runtime env vars
+	const secretKey = env.CLERK_SECRET_KEY;
+	const publishableKey = publicEnv.PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-	// Create auth function that returns auth state
-	event.locals.auth = () => {
-		// Return empty auth if no token
-		if (!sessionToken) {
-			return {
-				userId: null,
-				sessionId: null,
-				sessionClaims: null,
-				getToken: async () => null,
-				has: () => false,
-				debug: () => ({})
-			};
-		}
+	const sessionToken =
+		event.cookies.get('__session') ||
+		event.request.headers.get('Authorization')?.replace('Bearer ', '');
 
-		// For server-side, we'll verify the token and return the auth state
-		// The actual verification happens asynchronously, but we provide a sync interface
-		return {
-			userId: null, // Will be populated by verifyToken below
-			sessionId: null,
-			sessionClaims: null,
-			getToken: async () => sessionToken,
-			has: () => false,
-			debug: () => ({})
-		};
-	};
+	// Create default auth function that returns empty auth state
+	event.locals.auth = () => ({
+		userId: null,
+		sessionId: null,
+		sessionClaims: null,
+		getToken: async () => null,
+		has: () => false,
+		debug: () => ({})
+	});
 
-	// Verify token and populate auth if we have a session
-	if (sessionToken) {
+	// Only verify token if we have the secret key and a session token
+	if (secretKey && publishableKey && sessionToken) {
 		try {
+			const clerkClient = createClerkClient({
+				secretKey,
+				publishableKey
+			});
+
 			const verifiedToken = await clerkClient.verifyToken(sessionToken);
 			event.locals.auth = () => ({
 				userId: verifiedToken.sub,
