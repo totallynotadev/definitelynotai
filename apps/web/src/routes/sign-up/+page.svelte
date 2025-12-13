@@ -1,7 +1,8 @@
 <script lang="ts">
   import { SignUp } from '$lib/clerk/index.js';
 
-  console.log('sign-up [...rest] page script executing');
+  // Debug log
+  console.log('sign-up page script executing');
 </script>
 
 <svelte:head>

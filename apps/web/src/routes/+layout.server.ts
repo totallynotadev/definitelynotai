@@ -1,16 +1,15 @@
-import { buildClerkProps } from 'svelte-clerk/server';
-
 import type { LayoutServerLoad } from './$types';
 
 /**
  * Root layout server load function
  *
- * This provides Clerk auth state to the client for SSR support.
- * The buildClerkProps function serializes the auth state so it can
- * be hydrated on the client without an additional network request.
+ * Provides server-side auth info for route protection.
+ * The Clerk UI is initialized client-side via @clerk/clerk-js.
  */
 export const load: LayoutServerLoad = ({ locals }) => {
+  const auth = locals.auth();
+
   return {
-    ...buildClerkProps(locals.auth())
+    userId: auth.userId
   };
 };

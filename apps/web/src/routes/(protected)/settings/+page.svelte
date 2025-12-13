@@ -21,7 +21,7 @@
     Loader2,
   } from 'lucide-svelte';
   import { fade } from 'svelte/transition';
-  import { UserButton } from 'svelte-clerk';
+  import { UserButton } from '$lib/clerk/index.js';
 
   import {
     AlertDialog,

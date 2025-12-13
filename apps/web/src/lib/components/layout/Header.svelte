@@ -1,14 +1,15 @@
 <script lang="ts">
   import { Plus } from 'lucide-svelte';
-  import { SignedIn, SignedOut, UserButton } from 'svelte-clerk';
+  import { UserButton } from '$lib/clerk/index.js';
 
   import { Button } from '$lib/components/ui/button/index.js';
 
   interface Props {
     title?: string;
+    isAuthenticated?: boolean;
   }
 
-  const { title = 'Dashboard' }: Props = $props();
+  const { title = 'Dashboard', isAuthenticated = true }: Props = $props();
 </script>
 
 <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-800 bg-gray-950 px-6">
@@ -17,7 +18,7 @@
 
   <!-- Right Section -->
   <div class="flex items-center gap-4">
-    <SignedIn>
+    {#if isAuthenticated}
       <!-- New Project Button -->
       <a href="/projects/new">
         <Button class="bg-purple-600 hover:bg-purple-700">
@@ -34,9 +35,7 @@
           },
         }}
       />
-    </SignedIn>
-
-    <SignedOut>
+    {:else}
       <a href="/sign-in">
         <Button variant="ghost" class="text-gray-400 hover:text-white">
           Sign In
@@ -47,6 +46,6 @@
           Sign Up
         </Button>
       </a>
-    </SignedOut>
+    {/if}
   </div>
 </header>

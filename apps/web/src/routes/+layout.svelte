@@ -1,8 +1,9 @@
 <script lang="ts">
   import '../app.css';
-  import { ClerkProvider } from 'svelte-clerk';
+  import { onMount } from 'svelte';
   import { PUBLIC_CLERK_PUBLISHABLE_KEY } from '$env/static/public';
   import { browser } from '$app/environment';
+  import { initClerk } from '$lib/clerk/index.js';
 
   import Toaster from '$lib/components/Toaster.svelte';
 
@@ -13,14 +14,20 @@
   }
 
   const { children }: Props = $props();
+
+  let clerkReady = $state(false);
+
+  // Initialize Clerk on mount (client-side only)
+  onMount(async () => {
+    if (browser) {
+      await initClerk(PUBLIC_CLERK_PUBLISHABLE_KEY);
+      clerkReady = true;
+    }
+  });
 </script>
 
-{#if browser}
-  <ClerkProvider publishableKey={PUBLIC_CLERK_PUBLISHABLE_KEY}>
-    {@render children()}
-  </ClerkProvider>
-{:else}
+<div class="min-h-screen bg-gray-950">
   {@render children()}
-{/if}
+</div>
 
 <Toaster />

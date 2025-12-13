@@ -1,30 +1,31 @@
 <script lang="ts">
-  import { SignUp } from '$lib/clerk/index.js';
+  import { SignIn } from '$lib/clerk/index.js';
 
-  console.log('sign-up [...rest] page script executing');
+  // Debug log
+  console.log('sign-in page script executing');
 </script>
 
 <svelte:head>
-  <title>Sign Up | Definitely Not AI</title>
+  <title>Sign In | Definitely Not AI</title>
 </svelte:head>
 
 <div class="flex min-h-screen flex-col items-center justify-center bg-gray-900 px-4">
   <div class="mb-8 text-center">
     <h1 class="text-3xl font-bold text-white">Definitely Not AI</h1>
-    <p class="mt-2 text-gray-400">Create an account to start building</p>
+    <p class="mt-2 text-gray-400">Sign in to continue building amazing apps</p>
   </div>
 
   <div class="w-full max-w-md">
-    <SignUp
+    <SignIn
       redirectUrl="/projects"
-      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
     />
   </div>
 
   <p class="mt-8 text-center text-sm text-gray-500">
-    Already have an account?
-    <a href="/sign-in" class="font-medium text-indigo-400 hover:text-indigo-300">
-      Sign in
+    Don't have an account?
+    <a href="/sign-up" class="font-medium text-indigo-400 hover:text-indigo-300">
+      Sign up
     </a>
   </p>
 </div>

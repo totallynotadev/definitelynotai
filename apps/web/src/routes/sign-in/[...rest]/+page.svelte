@@ -1,18 +1,8 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { SignIn, SignedIn } from 'svelte-clerk';
+  import { SignIn } from '$lib/clerk/index.js';
 
-  // Redirect authenticated users to projects
-  function handleRedirect() {
-    goto('/projects');
-  }
+  console.log('sign-in [...rest] page script executing');
 </script>
-
-<SignedIn>
-  {#snippet children()}
-    {handleRedirect()}
-  {/snippet}
-</SignedIn>
 
 <svelte:head>
   <title>Sign In | Definitely Not AI</title>
@@ -26,10 +16,8 @@
 
   <div class="w-full max-w-md">
     <SignIn
-      routing="path"
-      path="/sign-in"
+      redirectUrl="/projects"
       signUpUrl="/sign-up"
-      forceRedirectUrl="/projects"
     />
   </div>
 
