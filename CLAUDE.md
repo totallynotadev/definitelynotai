@@ -2,6 +2,14 @@
 
 > **Read this first.** This file provides Claude Code with essential context about the project architecture, conventions, and common tasks.
 
+## 📚 Additional Documentation
+
+For deeper context, also read these files:
+- **[PROJECT_BIBLE.md](./PROJECT_BIBLE.md)** — Comprehensive architecture, patterns, and decisions
+- **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — Technical deep-dive, ADRs, data flows
+
+---
+
 ## What Is This Project?
 
 **Definitely Not AI** is an Agentic OS that transforms natural language into deployed applications. Users describe apps in plain English, and AI agents automatically plan, generate, validate, and deploy them.
