@@ -41,6 +41,16 @@
 				await initClerk(PUBLIC_CLERK_PUBLISHABLE_KEY);
 				console.log('[SignIn] initClerk complete');
 
+				const clerk = getClerk();
+
+				// Check if already signed in - redirect immediately
+				if (clerk?.user) {
+					console.log('[SignIn] user already signed in, redirecting to:', redirectUrl);
+					// Use window.location for more reliable redirect
+					window.location.href = redirectUrl;
+					return;
+				}
+
 				isReady = true;
 				console.log('[SignIn] isReady set to true');
 			} catch (e) {
@@ -63,18 +73,14 @@
 			return;
 		}
 
-		// Check if already signed in
-		if (clerk.user) {
-			console.log('[SignIn] user already signed in, redirecting');
-			goto(redirectUrl);
-			return;
-		}
-
 		// Mount the SignIn component
 		console.log('[SignIn] mounting clerk.mountSignIn');
 		try {
 			clerk.mountSignIn(containerEl, {
 				signUpUrl,
+				// Use afterSignInUrl for redirect after successful sign-in
+				afterSignInUrl: redirectUrl,
+				// Fallback
 				forceRedirectUrl: redirectUrl
 			});
 			isMounted = true;
