@@ -1,6 +1,8 @@
 <script lang="ts">
   import '../app.css';
   import { ClerkProvider } from 'svelte-clerk';
+  import { PUBLIC_CLERK_PUBLISHABLE_KEY } from '$env/static/public';
+  import { browser } from '$app/environment';
 
   import Toaster from '$lib/components/Toaster.svelte';
 
@@ -13,8 +15,12 @@
   const { children }: Props = $props();
 </script>
 
-<ClerkProvider>
+{#if browser}
+  <ClerkProvider publishableKey={PUBLIC_CLERK_PUBLISHABLE_KEY}>
+    {@render children()}
+  </ClerkProvider>
+{:else}
   {@render children()}
-</ClerkProvider>
+{/if}
 
 <Toaster />

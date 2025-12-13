@@ -1,6 +1,18 @@
 <script lang="ts">
-  import { SignIn } from 'svelte-clerk';
+  import { goto } from '$app/navigation';
+  import { SignIn, SignedIn } from 'svelte-clerk';
+
+  // Redirect authenticated users to projects
+  function handleRedirect() {
+    goto('/projects');
+  }
 </script>
+
+<SignedIn>
+  {#snippet children()}
+    {handleRedirect()}
+  {/snippet}
+</SignedIn>
 
 <svelte:head>
   <title>Sign In | Definitely Not AI</title>
