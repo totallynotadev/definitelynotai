@@ -1,16 +1,11 @@
 <script lang="ts">
-	// DEBUG: Top of script - before any imports
-	console.log('[SignUp] Script top - before imports');
-
 	/**
-	 * SignUp - Simple approach using vanilla Clerk JS
+	 * SignUp - Using $effect for Svelte 5 lifecycle
 	 */
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 	import { initClerk, getClerk } from './client.js';
 	import { PUBLIC_CLERK_PUBLISHABLE_KEY } from '$env/static/public';
-
-	console.log('[SignUp] After imports, PUBLIC_CLERK_PUBLISHABLE_KEY exists:', !!PUBLIC_CLERK_PUBLISHABLE_KEY);
 
 	interface Props {
 		redirectUrl?: string;
@@ -19,80 +14,74 @@
 
 	const { redirectUrl = '/projects', signInUrl = '/sign-in' }: Props = $props();
 
-	// Use $state for DOM ref to work properly with bind:this in Svelte 5
+	// Use $state for DOM ref and UI state
 	let containerEl = $state<HTMLDivElement | null>(null);
-	// UI state
 	let isReady = $state(false);
 	let isMounted = false;
+	let hasInitialized = false;
 
-	console.log('[SignUp] State initialized, registering onMount');
+	console.log('[SignUp] Component script running, browser:', browser);
 
-	onMount(() => {
-		console.log('[SignUp] onMount callback executing');
+	// Use $effect for initialization - runs when dependencies change
+	$effect(() => {
+		console.log('[SignUp] $effect running, browser:', browser, 'hasInitialized:', hasInitialized);
 
-		// Use async IIFE to handle async operations
-		const initPromise = (async () => {
-			console.log('[SignUp] async IIFE starting');
+		if (!browser || hasInitialized) {
+			console.log('[SignUp] $effect skipping - not browser or already initialized');
+			return;
+		}
 
+		hasInitialized = true;
+		console.log('[SignUp] $effect starting initialization');
+
+		// Initialize Clerk
+		(async () => {
 			try {
-				// Wait for Clerk to fully initialize
 				console.log('[SignUp] calling initClerk');
 				await initClerk(PUBLIC_CLERK_PUBLISHABLE_KEY);
 				console.log('[SignUp] initClerk complete');
 
-				// Now set ready state to show the container
 				isReady = true;
 				console.log('[SignUp] isReady set to true');
-
-				// Wait a frame for the DOM to update and containerEl to be set
-				await new Promise(resolve => requestAnimationFrame(resolve));
-				console.log('[SignUp] after requestAnimationFrame, containerEl:', !!containerEl);
-
-				if (!containerEl) {
-					console.error('[SignUp] containerEl is null after frame');
-					return;
-				}
-
-				const clerk = getClerk();
-				if (!clerk) {
-					console.error('[SignUp] clerk is null');
-					return;
-				}
-
-				// Check if already signed in
-				if (clerk.user) {
-					console.log('[SignUp] user already signed in, redirecting');
-					goto(redirectUrl);
-					return;
-				}
-
-				// Mount the SignUp component
-				console.log('[SignUp] mounting clerk.mountSignUp');
-				clerk.mountSignUp(containerEl, {
-					signInUrl,
-					forceRedirectUrl: redirectUrl
-				});
-				isMounted = true;
-				console.log('[SignUp] mounted successfully');
 			} catch (e) {
-				console.error('[SignUp] error during initialization:', e);
+				console.error('[SignUp] error during Clerk init:', e);
 			}
 		})();
+	});
 
-		// Cleanup function
-		return () => {
-			console.log('[SignUp] cleanup, isMounted:', isMounted);
-			if (isMounted && containerEl) {
-				const clerk = getClerk();
-				if (clerk) {
-					try {
-						clerk.unmountSignUp(containerEl);
-					} catch {
-						// Ignore cleanup errors
-					}
-				}
-			}
-		};
+	// Second effect to mount Clerk component when container is ready
+	$effect(() => {
+		console.log('[SignUp] mount $effect, isReady:', isReady, 'containerEl:', !!containerEl, 'isMounted:', isMounted);
+
+		if (!isReady || !containerEl || isMounted) {
+			return;
+		}
+
+		const clerk = getClerk();
+		if (!clerk) {
+			console.error('[SignUp] clerk is null');
+			return;
+		}
+
+		// Check if already signed in
+		if (clerk.user) {
+			console.log('[SignUp] user already signed in, redirecting');
+			goto(redirectUrl);
+			return;
+		}
+
+		// Mount the SignUp component
+		console.log('[SignUp] mounting clerk.mountSignUp');
+		try {
+			clerk.mountSignUp(containerEl, {
+				signInUrl,
+				forceRedirectUrl: redirectUrl
+			});
+			isMounted = true;
+			console.log('[SignUp] mounted successfully');
+		} catch (e) {
+			console.error('[SignUp] error mounting:', e);
+		}
 	});
 </script>
 
