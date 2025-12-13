@@ -1,8 +1,9 @@
 import { StateGraph, Annotation, END, START } from '@langchain/langgraph';
 import { z } from 'zod';
 import { SandboxManager, CodeValidator } from '@definitelynotai/sandbox';
-import { AGENT_REGISTRY } from '../agents/registry';
-import { ModelRouter } from '../router/model-router';
+import { TemplateManager, type Platform } from '@definitelynotai/templates';
+import { AGENT_REGISTRY } from '../agents/registry.js';
+import { ModelRouter } from '../router/model-router.js';
 
 /**
  * Build App Workflow State Schema (Zod for validation)
@@ -255,12 +256,14 @@ Respond with ONLY valid JSON.`,
 
   /**
    * Generating Node
-   * Uses the Backend agent to generate code based on the plan
+   * Uses templates + Backend agent to generate code based on the plan
    */
   async function generatingNode(
     state: BuildAppAnnotationState
   ): Promise<Partial<BuildAppAnnotationState>> {
+    const templateManager = new TemplateManager();
     const agent = AGENT_REGISTRY.backend;
+
     if (!agent) {
       return {
         status: 'failed',
@@ -274,42 +277,92 @@ Respond with ONLY valid JSON.`,
       };
     }
 
+    // Determine which template to use based on primary platform
+    const platform = (state.platforms[0] || 'web') as Platform;
+    const template = templateManager.getTemplateForPlatform(platform);
+
+    if (!template) {
+      return {
+        status: 'failed',
+        errors: [
+          {
+            agent: 'backend',
+            message: `No template available for platform: ${platform}`,
+            timestamp: new Date(),
+          },
+        ],
+      };
+    }
+
+    // Generate only the injection content (not full files)
     const response = await router.complete({
       taskType: 'code_backend',
       systemPrompt: agent.systemPrompt,
       messages: [
         {
           role: 'user',
-          content: `Generate the backend code for this app:
+          content: `Generate code to inject into a ${template.name} template.
 
-App: ${state.plan?.appName}
-Summary: ${state.plan?.summary}
+App Plan:
+${JSON.stringify(state.plan, null, 2)}
 
-Data Models:
-${state.plan?.dataModels?.map((m) => `- ${m.name}: ${m.fields.join(', ')}`).join('\n')}
+Available injection points:
+${template.injectionPoints.map((p) => `- ${p.marker}: ${p.description}`).join('\n')}
 
-API Endpoints:
-${state.plan?.apiEndpoints?.join('\n')}
+For each relevant injection point, generate appropriate TypeScript code.
+Output JSON with marker -> code mapping:
+{
+  "@agent:inject:schema": "export const todos = pgTable('todos', { id: text('id').primaryKey(), ... });",
+  "@agent:inject:routes": "routes.get('/todos', async (c) => { ... });",
+  ...
+}
 
-Generate TypeScript code using Hono and Drizzle ORM.
-Output JSON with filename -> content mapping.
-Include: schema.ts, routes.ts, and handlers.ts`,
+Rules:
+- Generate ONLY code for injection points, not full files
+- Use Drizzle ORM for schema definitions
+- Use Hono patterns for routes
+- Include proper TypeScript types
+- Follow the template's existing patterns
+
+Respond with ONLY valid JSON.`,
         },
       ],
       maxTokens: 8000,
     });
 
     try {
-      const code = JSON.parse(response.content) as Record<string, string>;
+      const injections = JSON.parse(response.content) as Record<string, string>;
+
+      // Convert to InjectionRequest array
+      const injectionRequests = Object.entries(injections).map(([marker, content]) => ({
+        marker,
+        content: content as string,
+      }));
+
+      // Prepare template with injections and customizations
+      const customizations: { appName?: string; description?: string } = {};
+      if (state.plan?.appName) {
+        customizations.appName = state.plan.appName;
+      }
+      if (state.plan?.summary) {
+        customizations.description = state.plan.summary;
+      }
+
+      const files = await templateManager.prepareTemplate(
+        template.id,
+        injectionRequests,
+        Object.keys(customizations).length > 0 ? customizations : undefined
+      );
+
       return {
         status: 'validating',
         currentAgent: 'qa',
-        generatedCode: code,
+        generatedCode: files,
         logs: [
           {
             agent: 'backend',
             step: 'generating',
-            message: `Generated ${Object.keys(code).length} files`,
+            message: `Generated ${Object.keys(files).length} files from ${template.name} template with ${injectionRequests.length} injections`,
             model: response.model,
             tokens: response.usage.inputTokens + response.usage.outputTokens,
             timestamp: new Date(),
@@ -322,7 +375,7 @@ Include: schema.ts, routes.ts, and handlers.ts`,
         errors: [
           {
             agent: 'backend',
-            message: `Failed to generate code: ${e}`,
+            message: `Failed to generate from template: ${e instanceof Error ? e.message : String(e)}`,
             timestamp: new Date(),
           },
         ],

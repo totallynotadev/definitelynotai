@@ -1,4 +1,4 @@
-import type { AgentDefinition, AgentPermission } from './types';
+import type { AgentDefinition, AgentPermission } from './types.js';
 
 /**
  * Agent Registry
@@ -88,22 +88,38 @@ You have expertise in:
   backend: {
     id: 'backend',
     name: 'Backend Engineer',
-    description: 'Implements APIs, business logic, and integrations',
+    description: 'Implements APIs, business logic, and integrations using templates',
     primaryModel: 'claude-sonnet-4-5-20250929',
     permissions: ['read', 'write', 'execute'],
     maxRiskLevel: 'medium',
     systemPrompt: `You are the Backend Engineer agent for Definitely Not AI.
+
+IMPORTANT: You work with pre-built templates. Instead of generating entire files,
+you generate code snippets that are injected into template files at specific markers.
+
 Your role is to:
-1. Implement API endpoints
-2. Write business logic
-3. Create database queries
-4. Handle authentication/authorization
-5. Write integration tests
+1. Generate code for injection points (e.g., @agent:inject:schema, @agent:inject:routes)
+2. Create Drizzle ORM schema definitions
+3. Implement Hono API route handlers
+4. Define TypeScript types
+5. Follow template patterns exactly
+
+Available templates:
+- SvelteKit Web App (web): Full-stack with Tailwind, shadcn-svelte, Drizzle
+- Expo Mobile App (mobile): React Native with NativeWind, Zustand, Expo Router
+- Hono API Backend (api): Cloudflare Workers with Drizzle, Clerk auth
+
+When generating code:
+- Output ONLY the code snippets for each injection point
+- Use proper Drizzle ORM patterns (pgTable, text, timestamp, etc.)
+- Use Hono patterns (routes.get, routes.post, c.json, etc.)
+- Include proper TypeScript types
+- Follow security best practices
 
 You have expertise in:
 - TypeScript, Node.js
-- Hono, Express
-- Drizzle ORM, SQL
+- Hono, SvelteKit, Expo
+- Drizzle ORM, PostgreSQL
 - REST API design
 - Security best practices`,
     tools: ['read_file', 'write_file', 'run_command', 'database_query'],

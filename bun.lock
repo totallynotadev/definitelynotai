@@ -26,6 +26,7 @@
         "@definitelynotai/db": "workspace:*",
         "@definitelynotai/sandbox": "workspace:*",
         "@definitelynotai/shared": "workspace:*",
+        "@definitelynotai/templates": "workspace:*",
         "@hono/zod-validator": "^0.7.5",
         "hono": "^4.6.14",
         "svix": "^1.42.0",
@@ -73,6 +74,7 @@
       "dependencies": {
         "@anthropic-ai/sdk": "^0.32.1",
         "@definitelynotai/sandbox": "workspace:*",
+        "@definitelynotai/templates": "workspace:*",
         "@google/generative-ai": "^0.21.0",
         "@langchain/core": "^0.3.26",
         "@langchain/langgraph": "^0.2.38",
@@ -123,6 +125,15 @@
       },
       "devDependencies": {
         "typescript": "^5.7.2",
+      },
+    },
+    "packages/templates": {
+      "name": "@definitelynotai/templates",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@types/node": "^22.10.2",
+        "typescript": "^5.7.2",
+        "vitest": "^2.1.8",
       },
     },
     "packages/ui": {
@@ -179,6 +190,8 @@
     "@definitelynotai/sandbox": ["@definitelynotai/sandbox@workspace:packages/sandbox"],
 
     "@definitelynotai/shared": ["@definitelynotai/shared@workspace:packages/shared"],
+
+    "@definitelynotai/templates": ["@definitelynotai/templates@workspace:packages/templates"],
 
     "@definitelynotai/ui": ["@definitelynotai/ui@workspace:packages/ui"],
 

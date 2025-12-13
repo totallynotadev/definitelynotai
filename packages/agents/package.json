@@ -23,6 +23,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
     "@definitelynotai/sandbox": "workspace:*",
+    "@definitelynotai/templates": "workspace:*",
     "@google/generative-ai": "^0.21.0",
     "@langchain/core": "^0.3.26",
     "@langchain/langgraph": "^0.2.38",
