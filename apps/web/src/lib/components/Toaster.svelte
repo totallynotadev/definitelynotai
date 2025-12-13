@@ -2,8 +2,8 @@
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
 
-  // Don't import svelte-sonner at module level - it uses stores
-  let ToasterComponent: any = null;
+  // Use $state for dynamic component to work properly in Svelte 5
+  let ToasterComponent = $state<any>(null);
   let ready = $state(false);
 
   onMount(async () => {
@@ -17,8 +17,7 @@
 </script>
 
 {#if ready && ToasterComponent}
-  <svelte:component
-    this={ToasterComponent}
+  <ToasterComponent
     position="bottom-right"
     richColors
     theme="dark"

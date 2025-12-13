@@ -19,11 +19,9 @@
 
 	const { redirectUrl = '/projects', signInUrl = '/sign-in' }: Props = $props();
 
-	console.log('[SignUp] Props initialized:', { redirectUrl, signInUrl });
-
-	// Regular let for DOM ref - NOT $state
-	let containerEl: HTMLDivElement;
-	// Use $state only for UI state
+	// Use $state for DOM ref to work properly with bind:this in Svelte 5
+	let containerEl = $state<HTMLDivElement | null>(null);
+	// UI state
 	let isReady = $state(false);
 	let isMounted = false;
 
@@ -46,7 +44,7 @@
 				isReady = true;
 				console.log('[SignUp] isReady set to true');
 
-				// Wait a frame for the DOM to update
+				// Wait a frame for the DOM to update and containerEl to be set
 				await new Promise(resolve => requestAnimationFrame(resolve));
 				console.log('[SignUp] after requestAnimationFrame, containerEl:', !!containerEl);
 
