@@ -27,6 +27,12 @@ export const envSchema = z.object({
   MODAL_TOKEN_ID: z.string().optional(),
   MODAL_TOKEN_SECRET: z.string().optional(),
 
+  // Deployment
+  GH_TOKEN: z.string().optional(),
+  CLOUDFLARE_API_TOKEN: z.string().optional(),
+  CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
+  EXPO_TOKEN: z.string().optional(),
+
   // Observability
   LANGFUSE_PUBLIC_KEY: z.string().optional(),
   LANGFUSE_SECRET_KEY: z.string().optional(),
@@ -56,6 +62,12 @@ export interface CloudflareBindings {
   E2B_API_KEY?: string;
   MODAL_TOKEN_ID?: string;
   MODAL_TOKEN_SECRET?: string;
+
+  // Deployment
+  GH_TOKEN?: string;
+  CLOUDFLARE_API_TOKEN?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  EXPO_TOKEN?: string;
 
   // Observability
   LANGFUSE_PUBLIC_KEY?: string;
