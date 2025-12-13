@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { SandboxManager, CodeValidator } from '@definitelynotai/sandbox';
 import { TemplateManager, type Platform } from '@definitelynotai/templates';
 import { DeploymentOrchestrator, type OrchestratorConfig } from '@definitelynotai/deploy';
+import { getObservability } from '@definitelynotai/observability';
+import type { TraceHandle } from '@definitelynotai/observability';
 import { AGENT_REGISTRY } from '../agents/registry.js';
 import { ModelRouter } from '../router/model-router.js';
 
@@ -18,6 +20,9 @@ export const BuildAppStateSchema = z.object({
   // Progress tracking
   status: z.enum(['planning', 'generating', 'validating', 'deploying', 'complete', 'failed']),
   currentAgent: z.string().optional(),
+
+  // Observability
+  traceId: z.string().optional(),
 
   // Artifacts
   plan: z
@@ -120,6 +125,10 @@ const BuildAppAnnotation = Annotation.Root({
     reducer: (_, b) => b,
     default: () => undefined,
   }),
+  traceId: Annotation<string | undefined>({
+    reducer: (_, b) => b,
+    default: () => undefined,
+  }),
   plan: Annotation<Plan | undefined>({
     reducer: (_, b) => b,
     default: () => undefined,
@@ -166,7 +175,8 @@ type BuildAppAnnotationState = typeof BuildAppAnnotation.State;
 export function createInitialState(
   projectId: string,
   prompt: string,
-  platforms: string[]
+  platforms: string[],
+  traceId?: string
 ): BuildAppAnnotationState {
   return {
     projectId,
@@ -174,6 +184,7 @@ export function createInitialState(
     platforms,
     status: 'planning',
     currentAgent: 'planner',
+    traceId: traceId ?? crypto.randomUUID(),
     plan: undefined,
     generatedCode: undefined,
     testsPass: undefined,
@@ -184,6 +195,84 @@ export function createInitialState(
     errors: [],
     logs: [],
   };
+}
+
+/**
+ * Traced wrapper for model router calls
+ * Records metrics, costs, and traces for each LLM call
+ */
+async function tracedComplete(
+  router: ModelRouter,
+  taskType: string,
+  options: Parameters<typeof router.complete>[0],
+  trace: TraceHandle,
+  agentId: string
+): Promise<ReturnType<typeof router.complete>> {
+  const obs = getObservability();
+  const generation = trace.generation(taskType, options.taskType, options.messages);
+
+  const startTime = Date.now();
+
+  try {
+    const result = await router.complete(options);
+
+    const latencyMs = Date.now() - startTime;
+
+    // Calculate cost
+    const cost = obs.costTracker.calculateCost(
+      result.model,
+      result.usage.inputTokens,
+      result.usage.outputTokens
+    );
+
+    // Record cost
+    obs.costTracker.recordCost({
+      model: result.model,
+      inputTokens: result.usage.inputTokens,
+      outputTokens: result.usage.outputTokens,
+      totalTokens: result.usage.inputTokens + result.usage.outputTokens,
+      cost,
+      latencyMs,
+      success: true,
+      agentId,
+    });
+
+    // Record agent execution metrics
+    obs.metrics.recordAgentExecution({
+      agentId,
+      taskType,
+      model: result.model,
+      startTime: new Date(startTime),
+      endTime: new Date(),
+      tokens: {
+        input: result.usage.inputTokens,
+        output: result.usage.outputTokens,
+      },
+      cost,
+      success: true,
+    });
+
+    // End generation trace
+    generation.end(result.content, {
+      model: result.model,
+      inputTokens: result.usage.inputTokens,
+      outputTokens: result.usage.outputTokens,
+      latencyMs,
+      success: true,
+    });
+
+    return result;
+  } catch (error) {
+    // Record error
+    obs.errorMonitor.captureException(error as Error, {
+      agentId,
+      step: taskType,
+    });
+
+    generation.error(error as Error);
+
+    throw error;
+  }
 }
 
 /**
@@ -201,8 +290,28 @@ export function createBuildAppWorkflow(router: ModelRouter) {
   async function planningNode(
     state: BuildAppAnnotationState
   ): Promise<Partial<BuildAppAnnotationState>> {
+    const obs = getObservability();
+    const trace = obs.langfuse?.createTrace({
+      traceId: state.traceId ?? crypto.randomUUID(),
+      metadata: {
+        projectId: state.projectId,
+        step: 'planning',
+      },
+    }) ?? {
+      span: () => ({ generation: () => ({ end: () => {}, error: () => {} }), event: () => {}, end: () => {} }),
+      generation: () => ({ end: () => {}, error: () => {} }),
+      event: () => {},
+      score: () => {},
+      end: () => {},
+    };
+
     const agent = AGENT_REGISTRY.planner;
     if (!agent) {
+      obs.errorMonitor.recordError({
+        type: 'agent',
+        message: 'Planner agent not found in registry',
+        context: { projectId: state.projectId, step: 'planning' },
+      });
       return {
         status: 'failed',
         errors: [
@@ -215,13 +324,19 @@ export function createBuildAppWorkflow(router: ModelRouter) {
       };
     }
 
-    const response = await router.complete({
-      taskType: 'plan',
-      systemPrompt: agent.systemPrompt,
-      messages: [
+    const span = trace.span('planning');
+
+    try {
+      const response = await tracedComplete(
+        router,
+        'planning',
         {
-          role: 'user',
-          content: `Create a detailed plan for this app:
+          taskType: 'plan',
+          systemPrompt: agent.systemPrompt,
+          messages: [
+            {
+              role: 'user',
+              content: `Create a detailed plan for this app:
 
 User Prompt: ${state.prompt}
 Target Platforms: ${state.platforms.join(', ')}
@@ -234,12 +349,17 @@ Output a JSON object with:
 - apiEndpoints: string[] (e.g., "GET /api/todos", "POST /api/todos")
 
 Respond with ONLY valid JSON.`,
+            },
+          ],
         },
-      ],
-    });
+        trace,
+        'planner'
+      );
 
-    try {
       const plan = JSON.parse(response.content) as Plan;
+      span.event('plan_created', { appName: plan.appName, features: plan.features.length });
+      span.end();
+
       return {
         status: 'generating',
         currentAgent: 'backend',
@@ -256,6 +376,13 @@ Respond with ONLY valid JSON.`,
         ],
       };
     } catch (e) {
+      obs.errorMonitor.captureException(e as Error, {
+        agentId: 'planner',
+        projectId: state.projectId,
+        step: 'planning',
+      });
+      span.end({ error: String(e) });
+
       return {
         status: 'failed',
         errors: [
@@ -276,10 +403,30 @@ Respond with ONLY valid JSON.`,
   async function generatingNode(
     state: BuildAppAnnotationState
   ): Promise<Partial<BuildAppAnnotationState>> {
+    const obs = getObservability();
+    const trace = obs.langfuse?.createTrace({
+      traceId: state.traceId ?? crypto.randomUUID(),
+      metadata: {
+        projectId: state.projectId,
+        step: 'generating',
+      },
+    }) ?? {
+      span: () => ({ generation: () => ({ end: () => {}, error: () => {} }), event: () => {}, end: () => {} }),
+      generation: () => ({ end: () => {}, error: () => {} }),
+      event: () => {},
+      score: () => {},
+      end: () => {},
+    };
+
     const templateManager = new TemplateManager();
     const agent = AGENT_REGISTRY.backend;
 
     if (!agent) {
+      obs.errorMonitor.recordError({
+        type: 'agent',
+        message: 'Backend agent not found in registry',
+        context: { projectId: state.projectId, step: 'generating' },
+      });
       return {
         status: 'failed',
         errors: [
@@ -297,6 +444,11 @@ Respond with ONLY valid JSON.`,
     const template = templateManager.getTemplateForPlatform(platform);
 
     if (!template) {
+      obs.errorMonitor.recordError({
+        type: 'agent',
+        message: `No template available for platform: ${platform}`,
+        context: { projectId: state.projectId, step: 'generating' },
+      });
       return {
         status: 'failed',
         errors: [
@@ -309,14 +461,20 @@ Respond with ONLY valid JSON.`,
       };
     }
 
-    // Generate only the injection content (not full files)
-    const response = await router.complete({
-      taskType: 'code_backend',
-      systemPrompt: agent.systemPrompt,
-      messages: [
+    const span = trace.span('generating');
+
+    try {
+      // Generate only the injection content (not full files)
+      const response = await tracedComplete(
+        router,
+        'code_generation',
         {
-          role: 'user',
-          content: `Generate code to inject into a ${template.name} template.
+          taskType: 'code_backend',
+          systemPrompt: agent.systemPrompt,
+          messages: [
+            {
+              role: 'user',
+              content: `Generate code to inject into a ${template.name} template.
 
 App Plan:
 ${JSON.stringify(state.plan, null, 2)}
@@ -340,12 +498,14 @@ Rules:
 - Follow the template's existing patterns
 
 Respond with ONLY valid JSON.`,
+            },
+          ],
+          maxTokens: 8000,
         },
-      ],
-      maxTokens: 8000,
-    });
+        trace,
+        'backend'
+      );
 
-    try {
       const injections = JSON.parse(response.content) as Record<string, string>;
 
       // Convert to InjectionRequest array
@@ -369,6 +529,9 @@ Respond with ONLY valid JSON.`,
         Object.keys(customizations).length > 0 ? customizations : undefined
       );
 
+      span.event('code_generated', { fileCount: Object.keys(files).length, injectionCount: injectionRequests.length });
+      span.end();
+
       return {
         status: 'validating',
         currentAgent: 'qa',
@@ -385,6 +548,13 @@ Respond with ONLY valid JSON.`,
         ],
       };
     } catch (e) {
+      obs.errorMonitor.captureException(e as Error, {
+        agentId: 'backend',
+        projectId: state.projectId,
+        step: 'generating',
+      });
+      span.end({ error: String(e) });
+
       return {
         status: 'failed',
         errors: [
@@ -405,8 +575,31 @@ Respond with ONLY valid JSON.`,
   async function validatingNode(
     state: BuildAppAnnotationState
   ): Promise<Partial<BuildAppAnnotationState>> {
+    const obs = getObservability();
+    const trace = obs.langfuse?.createTrace({
+      traceId: state.traceId ?? crypto.randomUUID(),
+      metadata: {
+        projectId: state.projectId,
+        step: 'validating',
+      },
+    }) ?? {
+      span: () => ({ generation: () => ({ end: () => {}, error: () => {} }), event: () => {}, end: () => {} }),
+      generation: () => ({ end: () => {}, error: () => {} }),
+      event: () => {},
+      score: () => {},
+      end: () => {},
+    };
+
+    const span = trace.span('validating');
+
     const e2bApiKey = process.env.E2B_API_KEY;
     if (!e2bApiKey) {
+      obs.errorMonitor.recordError({
+        type: 'validation',
+        message: 'E2B_API_KEY not configured',
+        context: { projectId: state.projectId, step: 'validating' },
+      });
+      span.end({ error: 'E2B_API_KEY not configured' });
       return {
         status: 'failed',
         errors: [
@@ -422,6 +615,8 @@ Respond with ONLY valid JSON.`,
     const manager = new SandboxManager(e2bApiKey);
     const validator = new CodeValidator(manager);
 
+    const startTime = Date.now();
+
     try {
       // Validate in sandbox
       const result = await validator.fullValidate(state.projectId, state.generatedCode || {});
@@ -429,7 +624,20 @@ Respond with ONLY valid JSON.`,
       // Cleanup sandbox
       await validator.cleanup(state.projectId);
 
+      const latencyMs = Date.now() - startTime;
+
+      // Record metrics for validation
+      obs.metrics.record('validation.latency', latencyMs, {
+        projectId: state.projectId,
+        valid: String(result.valid),
+      });
+      obs.metrics.record('validation.errors', result.errors.length, { projectId: state.projectId });
+      obs.metrics.record('validation.warnings', result.warnings.length, { projectId: state.projectId });
+
       if (result.valid) {
+        span.event('validation_passed', { warnings: result.warnings.length, latencyMs });
+        span.end();
+
         return {
           status: 'deploying',
           currentAgent: 'deploy',
@@ -450,6 +658,14 @@ Respond with ONLY valid JSON.`,
       } else {
         // Validation failed - could retry with fixes
         const errorMessages = result.errors.map((e) => e.message).join('; ');
+
+        obs.errorMonitor.recordError({
+          type: 'validation',
+          message: `Validation failed: ${errorMessages}`,
+          context: { projectId: state.projectId, step: 'validating' },
+        });
+        span.event('validation_failed', { errors: result.errors.length, latencyMs });
+        span.end({ error: errorMessages });
 
         return {
           status: 'failed',
@@ -476,6 +692,13 @@ Respond with ONLY valid JSON.`,
     } catch (error) {
       await manager.destroyAll(); // Cleanup on error
 
+      obs.errorMonitor.captureException(error as Error, {
+        agentId: 'qa',
+        projectId: state.projectId,
+        step: 'validating',
+      });
+      span.end({ error: String(error) });
+
       return {
         status: 'failed',
         errors: [
@@ -496,11 +719,34 @@ Respond with ONLY valid JSON.`,
   async function deployingNode(
     state: BuildAppAnnotationState
   ): Promise<Partial<BuildAppAnnotationState>> {
+    const obs = getObservability();
+    const trace = obs.langfuse?.createTrace({
+      traceId: state.traceId ?? crypto.randomUUID(),
+      metadata: {
+        projectId: state.projectId,
+        step: 'deploying',
+      },
+    }) ?? {
+      span: () => ({ generation: () => ({ end: () => {}, error: () => {} }), event: () => {}, end: () => {} }),
+      generation: () => ({ end: () => {}, error: () => {} }),
+      event: () => {},
+      score: () => {},
+      end: () => {},
+    };
+
+    const span = trace.span('deploying');
+
     const ghToken = process.env.GH_TOKEN;
     const cfApiToken = process.env.CLOUDFLARE_API_TOKEN;
     const cfAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
 
     if (!ghToken || !cfApiToken || !cfAccountId) {
+      obs.errorMonitor.recordError({
+        type: 'deployment',
+        message: 'Missing required environment variables: GH_TOKEN, CLOUDFLARE_API_TOKEN, or CLOUDFLARE_ACCOUNT_ID',
+        context: { projectId: state.projectId, step: 'deploying' },
+      });
+      span.end({ error: 'Missing required environment variables' });
       return {
         status: 'failed',
         errors: [
@@ -533,6 +779,8 @@ Respond with ONLY valid JSON.`,
 
     await orchestrator.init();
 
+    const startTime = Date.now();
+
     try {
       const result = await orchestrator.deploy({
         projectId: state.projectId,
@@ -545,6 +793,8 @@ Respond with ONLY valid JSON.`,
         environment: 'preview',
       });
 
+      const latencyMs = Date.now() - startTime;
+
       // Collect deployment URLs
       const deploymentUrls: Record<string, string> = {};
       if (result.deployments) {
@@ -556,6 +806,20 @@ Respond with ONLY valid JSON.`,
       }
 
       const successCount = result.deployments?.filter((d) => d.success).length || 0;
+      const failCount = (result.deployments?.length || 0) - successCount;
+
+      // Record deployment metrics
+      obs.metrics.record('deployment.latency', latencyMs, { projectId: state.projectId });
+      obs.metrics.record('deployment.success', successCount, { projectId: state.projectId });
+      obs.metrics.record('deployment.failed', failCount, { projectId: state.projectId });
+
+      span.event('deployment_complete', {
+        successCount,
+        failCount,
+        latencyMs,
+        urls: deploymentUrls,
+      });
+      span.end();
 
       return {
         status: 'complete',
@@ -584,6 +848,13 @@ Respond with ONLY valid JSON.`,
         ],
       };
     } catch (error) {
+      obs.errorMonitor.captureException(error as Error, {
+        agentId: 'deploy',
+        projectId: state.projectId,
+        step: 'deploying',
+      });
+      span.end({ error: String(error) });
+
       return {
         status: 'failed',
         errors: [
