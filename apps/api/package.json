@@ -18,6 +18,7 @@
     "@definitelynotai/agents": "workspace:*",
     "@definitelynotai/db": "workspace:*",
     "@definitelynotai/deploy": "workspace:*",
+    "@definitelynotai/observability": "workspace:*",
     "@definitelynotai/sandbox": "workspace:*",
     "@definitelynotai/shared": "workspace:*",
     "@definitelynotai/templates": "workspace:*",

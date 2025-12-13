@@ -5,18 +5,23 @@ import { prettyJSON } from 'hono/pretty-json';
 import { requestId } from 'hono/request-id';
 import { secureHeaders } from 'hono/secure-headers';
 
+import { initObservability, observabilityMiddleware } from '@definitelynotai/observability';
 import { clerkAuth, requireAuth, type AuthVariables } from './middleware/auth';
 import { errorHandler } from './middleware/error-handler';
 import { agents } from './routes/agents';
 import { deploy } from './routes/deploy';
 import { deployments } from './routes/deployments';
 import { health } from './routes/health';
+import { observability } from './routes/observability';
 import { projects } from './routes/projects';
 import { sandbox } from './routes/sandbox';
 import { templates } from './routes/templates';
 import { clerk } from './routes/webhooks/clerk';
 
 import type { CloudflareBindings } from './lib/env';
+
+// Track if observability is initialized
+let observabilityInitialized = false;
 
 const app = new Hono<{ Bindings: CloudflareBindings; Variables: AuthVariables }>();
 
@@ -35,6 +40,32 @@ app.use('*', secureHeaders());
 
 // Pretty JSON in development
 app.use('*', prettyJSON());
+
+// Initialize observability (lazy init with env from first request)
+app.use('*', async (c, next) => {
+  if (!observabilityInitialized) {
+    const env = c.env;
+    initObservability({
+      langfuse:
+        env.LANGFUSE_PUBLIC_KEY && env.LANGFUSE_SECRET_KEY
+          ? {
+              publicKey: env.LANGFUSE_PUBLIC_KEY,
+              secretKey: env.LANGFUSE_SECRET_KEY,
+              baseUrl: env.LANGFUSE_HOST,
+            }
+          : undefined,
+      costTracker: {
+        dailyBudget: 100, // $100/day limit
+      },
+      enabled: true,
+    });
+    observabilityInitialized = true;
+  }
+  await next();
+});
+
+// Observability middleware (tracing, metrics)
+app.use('*', observabilityMiddleware());
 
 // CORS configuration
 app.use(
@@ -74,6 +105,7 @@ v1.route('/deploy', deploy);
 v1.route('/deployments', deployments);
 v1.route('/sandbox', sandbox);
 v1.route('/templates', templates);
+v1.route('/observability', observability);
 
 app.route('/api/v1', v1);
 
