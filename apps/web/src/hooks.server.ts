@@ -12,9 +12,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const secretKey = env.CLERK_SECRET_KEY;
 	const publishableKey = publicEnv.PUBLIC_CLERK_PUBLISHABLE_KEY;
 
+	// Clerk can use different cookie names depending on the environment
+	// Check all possible session cookie names
 	const sessionToken =
 		event.cookies.get('__session') ||
+		event.cookies.get('__clerk_db_jwt') ||
+		event.cookies.get('__client') ||
 		event.request.headers.get('Authorization')?.replace('Bearer ', '');
+
+	console.log('[hooks.server] Auth check:', {
+		hasSecretKey: !!secretKey,
+		hasPublishableKey: !!publishableKey,
+		hasSessionToken: !!sessionToken,
+		cookies: event.cookies.getAll().map(c => c.name),
+		path: event.url.pathname
+	});
 
 	// Create default auth function that returns empty auth state
 	event.locals.auth = () => ({
@@ -35,6 +47,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 			});
 
 			const verifiedToken = await clerkClient.verifyToken(sessionToken);
+			console.log('[hooks.server] Token verified successfully, userId:', verifiedToken.sub);
+
 			event.locals.auth = () => ({
 				userId: verifiedToken.sub,
 				sessionId: verifiedToken.sid,
@@ -43,7 +57,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 				has: () => true,
 				debug: () => ({})
 			});
-		} catch {
+		} catch (e) {
+			console.log('[hooks.server] Token verification failed:', e instanceof Error ? e.message : 'Unknown error');
 			// Token verification failed, keep default empty auth
 		}
 	}

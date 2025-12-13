@@ -1,14 +1,18 @@
 import { getDb, projects, users, eq, desc } from '@definitelynotai/db';
-import { redirect } from '@sveltejs/kit';
 
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const auth = locals.auth();
 
-  // Redirect to sign-in if not authenticated
+  // If not authenticated server-side, return empty state
+  // Client-side auth check in layout will handle redirect
   if (!auth.userId) {
-    throw redirect(303, '/sign-in');
+    return {
+      projects: [],
+      projectCount: 0,
+      token: null,
+    };
   }
 
   const db = getDb();

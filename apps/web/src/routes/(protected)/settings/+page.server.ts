@@ -1,13 +1,22 @@
 import { getDb, users, eq } from '@definitelynotai/db';
-import { redirect } from '@sveltejs/kit';
 
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const auth = locals.auth();
 
+  // If not authenticated server-side, return empty state
+  // Client-side auth check in layout will handle redirect
   if (!auth.userId) {
-    throw redirect(303, '/sign-in');
+    return {
+      user: {
+        id: null,
+        clerkId: null,
+        name: null,
+        email: null,
+        createdAt: new Date().toISOString(),
+      },
+    };
   }
 
   const db = getDb();

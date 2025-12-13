@@ -1,14 +1,20 @@
 import { getDb, projects, users, deployments, agentLogs, eq, desc, and } from '@definitelynotai/db';
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
   const auth = locals.auth();
 
-  // Redirect to sign-in if not authenticated
+  // If not authenticated server-side, return empty state
+  // Client-side auth check in layout will handle redirect
   if (!auth.userId) {
-    throw redirect(303, '/sign-in');
+    return {
+      project: null,
+      deployments: [],
+      agentLogs: [],
+      token: null,
+    };
   }
 
   const db = getDb();
@@ -19,7 +25,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   });
 
   if (!user) {
-    throw error(404, 'User not found');
+    return {
+      project: null,
+      deployments: [],
+      agentLogs: [],
+      token: await auth.getToken(),
+    };
   }
 
   // Fetch project by ID
@@ -27,7 +38,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     where: eq(projects.id, params.id),
   });
 
-  // Return 404 if project not found
+  // Return null if project not found
   if (!project) {
     throw error(404, 'Project not found');
   }

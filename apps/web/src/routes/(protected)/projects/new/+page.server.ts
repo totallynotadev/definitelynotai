@@ -1,13 +1,14 @@
-import { redirect } from '@sveltejs/kit';
-
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const auth = locals.auth();
 
-  // Redirect to sign-in if not authenticated
+  // If not authenticated server-side, return null token
+  // Client-side auth check in layout will handle redirect
   if (!auth.userId) {
-    throw redirect(303, '/sign-in');
+    return {
+      token: null,
+    };
   }
 
   // Get the session token for API calls
